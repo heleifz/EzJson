@@ -1,7 +1,16 @@
 #include "EzJson.h"
+
 #include <iostream>
+#include <fstream>
+#include <string>
 
 int main() {
+	// remove spaces
+	std::cout << "remove spaces" << std::endl;
+	char tmp[] = "hello world my name is h e lei ";
+	removeSpaces(tmp);
+	std::cout << tmp << std::endl;
+
 	// number
 	std::cout << "number" << std::endl;
 	const char* num = "23.33e+10";
@@ -29,4 +38,32 @@ int main() {
 	const char* endobj = obj + strlen(obj);
 	std::cout << isObject(obj) << std::endl;
 	std::cout << (obj == endobj) << std::endl;
+
+	//with spaces
+	// read entire file into string
+	std::ifstream is("test.txt", std::ifstream::binary);
+	if (is) {
+		// get length of file:
+		is.seekg(0, is.end);
+		int length = is.tellg();
+		is.seekg(0, is.beg);
+
+		char *f = new char[length + 1];
+		is.read(f, length);
+		is.close();
+		f[length] = '\0';
+
+		std::cout << "file" << std::endl;
+		removeSpaces(f);
+		std::cout << "removed spaces: " << f << std::endl;
+
+		const char* ff = (const char*)f;
+		const char* endf = ff + strlen(ff);
+		std::cout << isObject(ff) << std::endl;
+		std::cout << (ff == endf) << std::endl;
+	}
+	else {
+		std::cout << "Could not open test.txt\n";
+	}
+
 }

@@ -1,6 +1,24 @@
 #ifndef __EZ_JSON__
 #define __EZ_JSON__
 
+// util functions
+
+int removeSpaces(char* str) {
+	char* todo = str;
+	char* scan = str;
+	while (*scan != '\0') {
+		if (*scan != ' ' && *scan != '\n' && *scan != '\r' && *scan != '\t') {
+			*todo = *scan;
+			todo++;
+		}
+		scan++;
+	}
+	*todo = '\0';
+	return todo - str;
+}
+
+// a simple LL(1) parser
+
 bool isSymbol(const char*& str, char sym) {
 	if (*str == sym) {
 		str++;
@@ -155,6 +173,10 @@ bool isArray(const char*& str) {
 		repetition(str, [](const char*& s) {
 			return isSymbol(s, ',') && isValue(s);
 		});
+		// trailing comma is not allowed
+		if (*(str - 1) == ',') {
+			return false;
+		}
 	}
 	if (!isSymbol(str, ']')) {
 		return false;
@@ -175,6 +197,10 @@ bool isObject(const char*& str) {
 		repetition(str, [](const char*& s) {
 			return isSymbol(s, ',') && isPair(s);
 		});
+		// trailing comma is not allowed
+		if (*(str - 1) == ',') {
+			return false;
+		}
 	}
 	if (!isSymbol(str, '}')) {
 		return false;
