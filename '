@@ -1,0 +1,272 @@
+#ifndef __EZ_JSON__
+#define __EZ_JSON__
+
+#include <string>
+#include <vector>
+#include <iostream>
+
+class Node {
+public:
+	enum NodeType {
+		NoType,
+		TrueType, FalseType, NullType,
+		NumberType, StringType,
+		ArrayType, ObjectType
+	};
+	virtual ~Node() { }
+	virtual NodeType getType() {
+		return 
+	}
+};
+
+class PrimitiveNode() {
+public:
+private:
+	std::string value;
+}
+
+// util functions
+
+int removeSpaces(char* str) {
+	char* todo = str;
+	char* scan = str;
+	while (*scan != '\0') {
+		if (*scan != ' ' && *scan != '\n' && *scan != '\r' && *scan != '\t') {
+			*todo = *scan;
+			todo++;
+		}
+		scan++;
+	}
+	*todo = '\0';
+	return todo - str;
+}
+
+// a simple LL(1) parser
+
+// primitive "eaters", they dont generate result
+
+bool eatSymbol(const char*& str, char sym) {
+	if (*str == sym) {
+		str++;
+		return true;
+	}
+	return false;
+}
+
+bool eatZeroDigit(const char*& str) {
+	return eatSymbol(str, '0');
+}
+
+bool eatNonZeroDigit(const char*& str) {
+	const char table[] =
+	{ '1', '2', '3', '4',
+	'5', '6', '7', '8',
+	'9' };
+	for (int i = 0; i < 9; ++i) {
+		if (eatSymbol(str, table[i])) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool eatDigit(const char*& str) {
+	return eatZeroDigit(str) || eatNonZeroDigit(str);
+}
+
+// number / string / true / false / null  -> return a "result" string
+
+bool eatNumber(const char*& str, std::string& result) {
+	
+	const char* start = str;
+
+	// optional minus sign
+	eatSymbol(str, '-');
+
+	// zero, or more than zero digits (cannot start with 0)
+	if (!eatZeroDigit(str)) {
+		if (!eatNonZeroDigit(str)) {
+			return false;
+		}
+		while (eatDigit(str));
+	}
+
+	// real number
+	if (eatSymbol(str, '.')) {
+		// at least one
+		if (!eatDigit(str)) {
+			return false;
+		}
+		// eat rest
+		while (eatDigit(str));
+	}
+
+	// scientific notation
+	if (eatSymbol(str, 'e') || eatSymbol(str, 'E')) {
+		// eat optional +/- sign
+		(eatSymbol(str, '+') || eatSymbol(str, '-'));
+		if (!eatDigit(str)) {
+			return false;
+		}
+		// eat rest
+		while (eatDigit(str));
+	}
+
+	result = std::string(start, str);
+	std::cout << "eat number result : " << result << "[EOL]\n";
+	
+	return true;
+}
+
+bool eatString(const char*& str, std::string result) {
+	
+	const char* start = str;
+
+	const char table[] =
+	{
+		'"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'
+	};
+	if (!eatSymbol(str, '"')) {
+		return false;
+	}
+	// look ahead
+	while (*str != '"') {
+		// end of str, format error.
+		if (*str == '\0') {
+			return false;
+		} else if (eatSymbol(str, '\\')) {
+			int i = 0;
+			for (; i < 8; ++i) {
+				if (eatSymbol(str, table[i])) {
+					break;
+				}
+			}
+			// special char found
+			if (i < 8) {
+				continue;
+			} else if (eatSymbol(str, table[8])) {
+				if (!(eatDigit(str) && eatDigit(str) && eatDigit(str) && eatDigit(str))) {
+					return false;
+				}
+				continue;
+			} else {
+				return false;
+			}
+		} else {
+			// eat anything else
+			str++;
+		}
+	}
+	if (!eatSymbol(str, '"')) {
+		return false;
+	}
+	
+	result = std::string(start, str);
+	std::cout << "eat string result : " << result << "[EOL]\n";
+
+	return true;
+}
+
+bool eatNull(const char*& str, std::string& result) {
+	if (eatSymbol(str, 'n') && eatSymbol(str, 'u') &&
+		eatSymbol(str, 'l') && eatSymbol(str, 'l')) {
+		result = "null";
+		std::cout << "eat null result : " << result << "[EOL]\n";
+		return true;
+	}
+	return false;
+}
+
+bool eatTrue(const char*& str, std::string& result) {
+	if (eatSymbol(str, 't') && eatSymbol(str, 'r') &&
+		eatSymbol(str, 'u') && eatSymbol(str, 'e')) {
+		result = "true";
+		std::cout << "eat true result : " << result << "[EOL]\n";
+		return true;
+	}
+	return false;
+}
+
+bool eatFalse(const char*& str, std::string& result) {
+	if (eatSymbol(str, 'f') && eatSymbol(str, 'a') &&
+		eatSymbol(str, 'l') && eatSymbol(str, 's') && eatSymbol(str, 'e')) {
+		result = "false";
+		std::cout << "eat false result : " << result << "[EOL]\n";
+		return true;
+	}
+	return false;
+}
+
+// compound value : returns a tree
+
+bool eatArray(const char*& str);
+bool eatObject(const char*& str);
+
+// 
+bool eatValue(const char*& str) {
+	std::string result;
+	if (
+		eatNull(str, result) ||
+		eatFalse(str, result) ||
+		eatTrue(str, result) ||
+		eatNumber(str, result) ||
+		eatString(str, result) ||
+		eatObject(str) ||
+		eatArray(str)
+		) {
+		return true;
+	}
+	return false;
+}
+
+bool eatArray(const char*& str) {
+	
+	std::string tmp;
+
+	if (!eatSymbol(str, '[')) {
+		return false;
+	}
+	// allow empty array
+	if (*str != ']') {
+		// value ....
+		if (!eatValue(str)) {
+			return false;
+		}
+		// ,value  ,value (trailling comma is not allowed)
+		while (eatSymbol(str, ',')) {
+			if (!eatValue(str)) {
+				return false;
+			}
+		}
+	}
+	if (!eatSymbol(str, ']')) {
+		return false;
+	}
+	return true;
+}
+
+bool eatObject(const char*& str) {
+	std::string tmp;
+	if (!eatSymbol(str, '{')) {
+		return false;
+	}
+	// allow empty object
+	// look ahead
+	if (*str != '}') {
+		if (!(eatString(str, tmp) && eatSymbol(str, ':') && eatValue(str))) {
+			return false;
+		}
+		// , str : val  , str : val ...
+		while (eatSymbol(str, ',')) {
+			if (!(eatString(str, tmp) && eatSymbol(str, ':') && eatValue(str))) {
+				return false;
+			}
+		}
+	}
+	if (!eatSymbol(str, '}')) {
+		return false;
+	}
+	return true;
+}
+
+#endif

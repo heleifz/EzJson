@@ -1,69 +1,53 @@
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #include "EzJson.h"
 
 #include <iostream>
 #include <fstream>
+#include <streambuf>
 #include <string>
 
+class PrintVisitor : public Visitor {
+public:
+	void visit(NumberNode* ptr) {
+		std::cout << "number node : " << ptr->value << "\n";
+	}
+	void visit(BoolNode* ptr) {
+		std::cout << "bool node : " << ptr->value << "\n";
+	}
+	void visit(StringNode* ptr) {
+		std::cout << "string node : " << ptr->value << "\n";
+	}
+	void visit(ArrayNode* ptr) {
+		std::cout << "array node (visited), size : " << ptr->childs.size() << "\n";
+	}
+	void visit(ObjectNode* ptr) {
+		std::cout << "object node (visited), size : " << ptr->pairs.size() << "\n";
+	}
+};
+
+
 int main() {
-	// remove spaces
-	std::cout << "remove spaces" << std::endl;
-	char tmp[] = "hello world my name is h e lei ";
-	removeSpaces(tmp);
-	std::cout << tmp << std::endl;
 
-	// number
-	std::cout << "number" << std::endl;
-	const char* num = "23.33e+10";
-	const char* end = num + strlen(num);
-	std::cout << isNumber(num) << std::endl;
-	std::cout << (num == end) << std::endl;
-	
-	// string
-	std::cout << "string" << std::endl;
-	const char* str = "\"hello\\b \\nworld\"";
-	const char* endstr = str + strlen(str);
-	std::cout << isString(str) << std::endl;
-	std::cout << (str == endstr) << std::endl;
-
-	//array
-	std::cout << "array" << std::endl;
-	const char* arr = "[1,2,[4,5.5,\"nihao\",7],{\"asdf\":3}]";
-	const char* endarr = arr + strlen(arr);
-	std::cout << isArray(arr) << std::endl;
-	std::cout << (arr == endarr) << std::endl;
-
-	//object
-	std::cout << "object" << std::endl;
-	const char* obj = "{\"hello\":[1,2,4],\"world\":\"nihao\"}";
-	const char* endobj = obj + strlen(obj);
-	std::cout << isObject(obj) << std::endl;
-	std::cout << (obj == endobj) << std::endl;
-
-	//with spaces
-	// read entire file into string
-	std::ifstream is("test.txt", std::ifstream::binary);
-	if (is) {
-		// get length of file:
-		is.seekg(0, is.end);
-		int length = is.tellg();
-		is.seekg(0, is.beg);
-
-		char *f = new char[length + 1];
-		is.read(f, length);
-		is.close();
-		f[length] = '\0';
-
-		std::cout << "file" << std::endl;
-		removeSpaces(f);
-		std::cout << "removed spaces: " << f << std::endl;
-
-		const char* ff = (const char*)f;
-		const char* endf = ff + strlen(ff);
-		std::cout << isObject(ff) << std::endl;
-		std::cout << (ff == endf) << std::endl;
+	// detect memory leak
+	{
+		// read entire file into string
+		std::ifstream is("test2.txt");
+		if (is) {
+			std::string str((std::istreambuf_iterator<char>(is)),
+				std::istreambuf_iterator<char>());
+			std::shared_ptr<Node> result = Parser::parse(str);
+			std::cout << "file" << std::endl;
+			std::cout << "=============== visitor test ======================\n";
+			std::shared_ptr<Visitor> v = std::make_shared<PrintVisitor>();
+			result->acceptVisitor(v);
+		}
+		else {
+			std::cout << "Could not open test.txt\n";
+		}
 	}
-	else {
-		std::cout << "Could not open test.txt\n";
-	}
+	_CrtDumpMemoryLeaks();
 
 }

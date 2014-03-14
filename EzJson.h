@@ -1,211 +1,377 @@
 #ifndef __EZ_JSON__
 #define __EZ_JSON__
 
-// util functions
+#include <string>
+#include <vector>
+#include <map>
+#include <iostream>
+#include <memory>
+#include <algorithm>
+#include <cctype>
 
-int removeSpaces(char* str) {
-	char* todo = str;
-	char* scan = str;
-	while (*scan != '\0') {
-		if (*scan != ' ' && *scan != '\n' && *scan != '\r' && *scan != '\t') {
-			*todo = *scan;
-			todo++;
-		}
-		scan++;
+class NumberNode;
+class StringNode;
+class BoolNode;
+class ArrayNode;
+class ObjectNode;
+
+class Visitor {
+public:
+	virtual void visit(NumberNode* ptr) = 0;
+	virtual void visit(BoolNode* ptr) = 0;
+	virtual void visit(StringNode* ptr) = 0;
+	virtual void visit(ArrayNode* ptr) = 0;
+	virtual void visit(ObjectNode* ptr) = 0;
+};
+
+// abstract syntax tree
+
+class Node {
+public:
+	virtual ~Node() { }
+	virtual void acceptVisitor(std::shared_ptr<Visitor> visitor) = 0;
+};
+
+class NumberNode : public Node {
+public:
+	void acceptVisitor(std::shared_ptr<Visitor> visitor) {
+		visitor->visit(this);
 	}
-	*todo = '\0';
-	return todo - str;
-}
+	NumberNode(const std::string& val) {
+		value = stod(val);
+	}
+	double value;
+};
+
+// string
+class StringNode : public Node {
+public:
+	StringNode(const std::string& val) : value(val) { }
+	void acceptVisitor(std::shared_ptr<Visitor> visitor) {
+		visitor->visit(this);
+	}
+	std::string value;
+};
+
+// true / false
+class BoolNode : public Node {
+public:
+	void acceptVisitor(std::shared_ptr<Visitor> visitor) {
+		visitor->visit(this);
+	}
+	BoolNode(const std::string& val) {
+		if (val == "true") {
+			value = true;
+		}
+		else {
+			value = false;
+		}
+	}
+	bool value;
+};
+
+// do nothing, store nothing
+// null node is "nullptr"
+
+class ArrayNode : public Node {
+public:
+	void acceptVisitor(std::shared_ptr<Visitor> visitor) {
+		for (auto it = childs.begin(); it != childs.end(); ++it) {
+			if (*it) {
+				(*it)->acceptVisitor(visitor);
+			}
+		}
+		visitor->visit(this);
+	}
+	std::vector<std::shared_ptr<Node>> childs;
+};
+
+class ObjectNode : public Node {
+public:
+	void acceptVisitor(std::shared_ptr<Visitor> visitor) {
+		for (auto it = pairs.begin(); it != pairs.end(); ++it) {
+			if (it->second) {
+				it->second->acceptVisitor(visitor);
+			}
+		}
+		visitor->visit(this);
+	}
+	std::map<std::string, std::shared_ptr<Node>> pairs;
+};
+
+//////////////////////////////////////////////////////////////////
 
 // a simple LL(1) parser
 
-bool isSymbol(const char*& str, char sym) {
-	if (*str == sym) {
-		str++;
-		return true;
-	}
-	return false;
-}
-
-bool isZeroDigit(const char*& str) {
-	return isSymbol(str, '0');
-}
-
-bool isNonZeroDigit(const char*& str) {
-	const char table[] =
-	{ '1', '2', '3', '4',
-	'5', '6', '7', '8',
-	'9' };
-
-	for (int i = 0; i < 9; ++i) {
-		if (isSymbol(str, table[i])) {
+class Parser {
+private:
+	// primitive "eaters", they dont generate result
+	static bool eatSymbol(const char*& str, char sym) {
+		if (*str == sym) {
+			str++;
 			return true;
 		}
-	}
-	return false;
-}
-
-bool isDigit(const char*& str) {
-	return isZeroDigit(str) || isNonZeroDigit(str);
-}
-
-template <typename Pred>
-bool repetition(const char*& str, Pred pred) {
-	while (pred(str));
-	return true;
-}
-
-template <typename Pred>
-bool oneOrMore(const char*& str, Pred pred) {
-	if (!pred(str)) {
-		return false;
-	}
-	return repetition(str, pred);
-}
-
-bool isNumber(const char*& str) {
-	// optional minus sign
-	isSymbol(str, '-');
-	// zero, or more than zero digits (cannot start with 0)
-	if (!((isZeroDigit(str) ||
-		(isNonZeroDigit(str) && repetition(str, isDigit))))) {
 		return false;
 	}
 
-	// real number
-	if (isSymbol(str, '.')) {
-		if (!oneOrMore(str, isDigit)) {
-			return false;
-		}
+	static bool eatZeroDigit(const char*& str) {
+		return eatSymbol(str, '0');
 	}
 
-	// scientific notation
-	if (isSymbol(str, 'e') || isSymbol(str, 'E')) {
-		// eat optional +/- sign
-		(isSymbol(str, '+') || isSymbol(str, '-'));
-		if (!oneOrMore(str, isDigit)) {
-			return false;
-		}
-	}
-	
-	return true;
-}
-
-// ugly
-bool isStringComponent(const char*& str) {
-	const char table[] =
-	{
-		'"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'
-	};
-	// look ahead
-	if (*str == '"' || *str == '\0') {
-		return false;
-	}
-	if (isSymbol(str, '\\')) {
-		for (int i = 0; i < 8; ++i) {
-			if (isSymbol(str, table[i])) {
+	static bool eatNonZeroDigit(const char*& str) {
+		const char table[] =
+		{ '1', '2', '3', '4',
+		'5', '6', '7', '8',
+		'9' };
+		for (int i = 0; i < 9; ++i) {
+			if (eatSymbol(str, table[i])) {
 				return true;
 			}
 		}
-		if (isSymbol(str, table[8])) {
-			if (!(isDigit(str) && isDigit(str) && isDigit(str) && isDigit(str))) {
+		return false;
+	}
+
+	static bool eatDigit(const char*& str) {
+		return eatZeroDigit(str) || eatNonZeroDigit(str);
+	}
+
+	// number / string / true / false / null  -> return a "result" string
+
+	static bool eatNumber(const char*& str, std::string& result) {
+		const char* start = str;
+
+		// optional minus sign
+		eatSymbol(str, '-');
+
+		// zero, or more than zero digits (cannot start with 0)
+		if (!eatZeroDigit(str)) {
+			if (!eatNonZeroDigit(str)) {
 				return false;
 			}
+			while (eatDigit(str));
+		}
+
+		// real number
+		if (eatSymbol(str, '.')) {
+			// at least one
+			if (!eatDigit(str)) {
+				return false;
+			}
+			// eat rest
+			while (eatDigit(str));
+		}
+
+		// scientific notation
+		if (eatSymbol(str, 'e') || eatSymbol(str, 'E')) {
+			// eat optional +/- sign
+			(eatSymbol(str, '+') || eatSymbol(str, '-'));
+			if (!eatDigit(str)) {
+				return false;
+			}
+			// eat rest
+			while (eatDigit(str));
+		}
+
+		result = std::string(start, str);
+
+		return true;
+	}
+
+	// eat string
+
+	static bool eatString(const char*& str, std::string& result) {
+		const char* start = str;
+
+		const char table[] =
+		{
+			'"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u'
+		};
+		if (!eatSymbol(str, '"')) {
+			return false;
+		}
+		// look ahead
+		while (*str != '"') {
+			// end of str, format error.
+			if (*str == '\0') {
+				return false;
+			}
+			else if (eatSymbol(str, '\\')) {
+				int i = 0;
+				for (; i < 8; ++i) {
+					if (eatSymbol(str, table[i])) {
+						break;
+					}
+				}
+				// special char found
+				if (i < 8) {
+					continue;
+				}
+				else if (eatSymbol(str, table[8])) {
+					if (!(eatDigit(str) && eatDigit(str) && eatDigit(str) && eatDigit(str))) {
+						return false;
+					}
+					continue;
+				}
+				else {
+					return false;
+				}
+			}
+			else {
+				// eat anything else
+				str++;
+			}
+		}
+		if (!eatSymbol(str, '"')) {
+			return false;
+		}
+
+		result = std::string(start, str);
+
+		return true;
+	}
+
+	// eat null
+
+	static bool eatNull(const char*& str, std::string& result) {
+		if (eatSymbol(str, 'n') && eatSymbol(str, 'u') &&
+			eatSymbol(str, 'l') && eatSymbol(str, 'l')) {
+			result = "null";
 			return true;
 		}
 		return false;
-	} else {
-		str++;
-		return true;
 	}
-}
 
-bool isString(const char*& str) {
-	if (!isSymbol(str, '"')) {
+	// eat true / false
+
+	static bool eatTrue(const char*& str, std::string& result) {
+		if (eatSymbol(str, 't') && eatSymbol(str, 'r') &&
+			eatSymbol(str, 'u') && eatSymbol(str, 'e')) {
+			result = "true";
+			return true;
+		}
 		return false;
 	}
-	repetition(str, isStringComponent);
-	if (!isSymbol(str, '"')) {
+
+	static bool eatFalse(const char*& str, std::string& result) {
+		if (eatSymbol(str, 'f') && eatSymbol(str, 'a') &&
+			eatSymbol(str, 'l') && eatSymbol(str, 's') && eatSymbol(str, 'e')) {
+			result = "false";
+			return true;
+		}
 		return false;
 	}
-	return true;
-}
 
-bool isNull(const char*& str) {
-	return (isSymbol(str, 'n') && isSymbol(str, 'u') &&
-			isSymbol(str, 'l') && isSymbol(str, 'l'));
-}
+	// compound value : returns a tree
 
-bool isTrue(const char*& str) {
-	return (isSymbol(str, 't') && isSymbol(str, 'r') &&
-			isSymbol(str, 'u') && isSymbol(str, 'e'));
-}
+	static bool eatValue(const char*& str, std::shared_ptr<Node>& result) {
+		std::string val;
+		if (eatNull(str, val)) {
+			result = std::shared_ptr<Node>(nullptr);
+			return true;
+		}
+		else if (eatFalse(str, val) || eatTrue(str, val)) {
+			result = std::make_shared<BoolNode>(val);
+			return true;
+		}
+		else if (eatNumber(str, val)) {
+			result = std::make_shared<NumberNode>(val);
+			return true;
+		}
+		else if (eatString(str, val)) {
+			result = std::make_shared<StringNode>(val);
+			return true;
+		}
+		else if (eatArray(str, result)) {
+			return true;
+		}
+		else if (eatObject(str, result)) {
+			return true;
+		}
 
-bool isFalse(const char*& str) {
-	return (isSymbol(str, 'f') && isSymbol(str, 'a') &&
-			isSymbol(str, 'l') && isSymbol(str, 's') && isSymbol(str, 'e'));
-}
-
-bool isArray(const char*& str);
-bool isObject(const char*& str);
-
-bool isValue(const char*& str) {
-	if (
-		isNull(str) ||
-		isFalse(str) ||
-		isTrue(str) ||
-		isNumber(str) ||
-		isString(str) ||
-		isObject(str) ||
-		isArray(str)
-		) {
-		return true;
-	}
-	return false;
-}
-
-bool isArray(const char*& str) {
-	if (!isSymbol(str, '[')) {
 		return false;
 	}
-	// allow empty array
-	if (isValue(str)) {
-		repetition(str, [](const char*& s) {
-			return isSymbol(s, ',') && isValue(s);
-		});
-		// trailing comma is not allowed
-		if (*(str - 1) == ',') {
+
+	static bool eatArray(const char*& str, std::shared_ptr<Node>& result) {
+		std::shared_ptr<ArrayNode> ret = std::make_shared<ArrayNode>();
+
+		if (!eatSymbol(str, '[')) {
 			return false;
 		}
-	}
-	if (!isSymbol(str, ']')) {
-		return false;
-	}
-	return true;
-}
+		// allow empty array
+		if (*str != ']') {
+			std::shared_ptr<Node> one;
+			// value ....
+			if (!eatValue(str, one)) {
+				return false;
+			}
+			ret->childs.push_back(one);
 
-bool isPair(const char*& str) {
-	return isString(str) && isSymbol(str, ':') && isValue(str);
-}
-
-bool isObject(const char*& str) {
-	if (!isSymbol(str, '{')) {
-		return false;
-	}
-	// allow empty object
-	if (isPair(str)) {
-		repetition(str, [](const char*& s) {
-			return isSymbol(s, ',') && isPair(s);
-		});
-		// trailing comma is not allowed
-		if (*(str - 1) == ',') {
+			// ,value  ,value (trailling comma is not allowed)
+			while (eatSymbol(str, ',')) {
+				if (!eatValue(str, one)) {
+					return false;
+				}
+				ret->childs.push_back(one);
+			}
+		}
+		if (!eatSymbol(str, ']')) {
 			return false;
 		}
+
+		result = ret;
+
+		return true;
 	}
-	if (!isSymbol(str, '}')) {
-		return false;
+
+	static bool eatObject(const char*& str, std::shared_ptr<Node>& result) {
+		std::shared_ptr<ObjectNode> ret = std::make_shared<ObjectNode>();
+
+		if (!eatSymbol(str, '{')) {
+			return false;
+		}
+		// allow empty object
+		// look ahead
+		if (*str != '}') {
+			std::string key;
+			std::shared_ptr<Node> val;
+
+			if (!(eatString(str, key) && eatSymbol(str, ':') && eatValue(str, val))) {
+				return false;
+			}
+			ret->pairs.insert(std::make_pair(key, val));
+			// , str : val  , str : val ...
+			while (eatSymbol(str, ',')) {
+				if (!(eatString(str, key) && eatSymbol(str, ':') && eatValue(str, val))) {
+					return false;
+				}
+				ret->pairs.insert(std::make_pair(key, val));
+			}
+		}
+		if (!eatSymbol(str, '}')) {
+			return false;
+		}
+		result = ret;
+		return true;
 	}
-	return true;
-}
+public:
+	static std::shared_ptr<Node> parse(const std::string& str) {
+		std::string trimmed = str;
+
+		// remove comment line
+		// todo...
+
+		// remove white space charactor
+		trimmed.erase(std::remove_if(trimmed.begin(), trimmed.end(), isspace),
+			trimmed.end());
+		std::shared_ptr<Node> ret;
+		const char* ptr = trimmed.c_str();
+		if (eatObject(ptr, ret)) {
+			return ret;
+		}
+		else {
+			return nullptr;
+		}
+	}
+};
 
 #endif
