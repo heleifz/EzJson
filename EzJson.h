@@ -15,7 +15,7 @@ class BoolNode;
 class ArrayNode;
 class ObjectNode;
 
-class Visitor {
+class Visitor : public std::enable_shared_from_this<Visitor> {
 public:
 	virtual void visit(NumberNode* ptr) = 0;
 	virtual void visit(BoolNode* ptr) = 0;
@@ -76,11 +76,6 @@ public:
 class ArrayNode : public Node {
 public:
 	void acceptVisitor(std::shared_ptr<Visitor> visitor) {
-		for (auto it = childs.begin(); it != childs.end(); ++it) {
-			if (*it) {
-				(*it)->acceptVisitor(visitor);
-			}
-		}
 		visitor->visit(this);
 	}
 	std::vector<std::shared_ptr<Node>> childs;
@@ -89,11 +84,6 @@ public:
 class ObjectNode : public Node {
 public:
 	void acceptVisitor(std::shared_ptr<Visitor> visitor) {
-		for (auto it = pairs.begin(); it != pairs.end(); ++it) {
-			if (it->second) {
-				it->second->acceptVisitor(visitor);
-			}
-		}
 		visitor->visit(this);
 	}
 	std::map<std::string, std::shared_ptr<Node>> pairs;
@@ -101,7 +91,7 @@ public:
 
 //////////////////////////////////////////////////////////////////
 
-// a simple LL(1) parser
+// the LL(1) json parser
 
 class Parser {
 private:
@@ -361,8 +351,10 @@ public:
 		// todo...
 
 		// remove white space charactor
-		trimmed.erase(std::remove_if(trimmed.begin(), trimmed.end(), isspace),
-			trimmed.end());
+		trimmed.erase(std::remove_if(trimmed.begin(), trimmed.end(), [](const char& c) {
+			return (c == ' ' || c == '\t' || c == '\r' || c == '\n');
+		}), trimmed.end());
+
 		std::shared_ptr<Node> ret;
 		const char* ptr = trimmed.c_str();
 		if (eatObject(ptr, ret)) {
