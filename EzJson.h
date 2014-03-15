@@ -1,7 +1,7 @@
 #ifndef __EZ_JSON__
 #define __EZ_JSON__
 
-#include <string>
+#include <sstream>
 #include <vector>
 #include <map>
 #include <iostream>
@@ -24,12 +24,32 @@ public:
 	virtual void visit(ObjectNode* ptr) = 0;
 };
 
+class NotAnObjectError {};
+class NotAnArrayError {};
+
+class NotConvertibleError {};
+
 // abstract syntax tree
 
 class Node {
 public:
 	virtual ~Node() { }
 	virtual void acceptVisitor(std::shared_ptr<Visitor> visitor) = 0;
+	virtual std::shared_ptr<Node> field(const std::string& key) {
+		throw NotAnObjectError();
+	}
+	virtual std::shared_ptr<Node> at(int idx) {
+		throw NotAnArrayError();
+	}
+	virtual double asDouble() {
+		throw NotConvertibleError();
+	}
+	virtual std::string asString() {
+		throw NotConvertibleError();
+	}
+	virtual bool asBool() {
+		throw NotConvertibleError();
+	}
 };
 
 class NumberNode : public Node {
@@ -40,6 +60,14 @@ public:
 	NumberNode(const std::string& val) {
 		value = stod(val);
 	}
+	virtual double asDouble() {
+		return value;;
+	}
+	virtual std::string asString() {
+		std::stringstream ss;
+		ss << value;
+		return ss.str();
+	}
 	double value;
 };
 
@@ -49,6 +77,9 @@ public:
 	StringNode(const std::string& val) : value(val) { }
 	void acceptVisitor(std::shared_ptr<Visitor> visitor) {
 		visitor->visit(this);
+	}
+	virtual std::string asString() {
+		return value;
 	}
 	std::string value;
 };
@@ -67,6 +98,20 @@ public:
 			value = false;
 		}
 	}
+	virtual double asDouble() {
+		return static_cast<bool>(value);
+	}
+	virtual std::string asString() {
+		if (value) {
+			return "true";
+		}
+		else {
+			return "false";
+		}
+	}
+	virtual bool asBool() {
+		return value;
+	}
 	bool value;
 };
 
@@ -75,6 +120,9 @@ public:
 
 class ArrayNode : public Node {
 public:
+	virtual std::shared_ptr<Node> at(int idx) {
+		return childs[idx];
+	}
 	void acceptVisitor(std::shared_ptr<Visitor> visitor) {
 		visitor->visit(this);
 	}
@@ -83,6 +131,9 @@ public:
 
 class ObjectNode : public Node {
 public:
+	virtual std::shared_ptr<Node> field(const std::string& key) {
+		return pairs.at(key);
+	}
 	void acceptVisitor(std::shared_ptr<Visitor> visitor) {
 		visitor->visit(this);
 	}
@@ -90,7 +141,6 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////
-
 // the LL(1) json parser
 
 class Parser {
@@ -102,6 +152,11 @@ private:
 			return true;
 		}
 		return false;
+	}
+
+	static void eatSpaces(const char*& str) {
+		while (eatSymbol(str, ' ') || eatSymbol(str, '\n') ||
+			   eatSymbol(str, '\t') || eatSymbol(str, '\r'));
 	}
 
 	static bool eatZeroDigit(const char*& str) {
@@ -214,8 +269,9 @@ private:
 		if (!eatSymbol(str, '"')) {
 			return false;
 		}
-
-		result = std::string(start, str);
+		
+		// strip quotes
+		result = std::string(start + 1, str - 1);
 
 		return true;
 	}
@@ -254,6 +310,7 @@ private:
 	// compound value : returns a tree
 
 	static bool eatValue(const char*& str, std::shared_ptr<Node>& result) {
+		eatSpaces(str);
 		std::string val;
 		if (eatNull(str, val)) {
 			result = std::shared_ptr<Node>(nullptr);
@@ -277,7 +334,6 @@ private:
 		else if (eatObject(str, result)) {
 			return true;
 		}
-
 		return false;
 	}
 
@@ -287,6 +343,7 @@ private:
 		if (!eatSymbol(str, '[')) {
 			return false;
 		}
+		eatSpaces(str);
 		// allow empty array
 		if (*str != ']') {
 			std::shared_ptr<Node> one;
@@ -295,6 +352,7 @@ private:
 				return false;
 			}
 			ret->childs.push_back(one);
+			eatSpaces(str);
 
 			// ,value  ,value (trailling comma is not allowed)
 			while (eatSymbol(str, ',')) {
@@ -302,6 +360,7 @@ private:
 					return false;
 				}
 				ret->childs.push_back(one);
+				eatSpaces(str);
 			}
 		}
 		if (!eatSymbol(str, ']')) {
@@ -314,29 +373,49 @@ private:
 	}
 
 	static bool eatObject(const char*& str, std::shared_ptr<Node>& result) {
+		eatSpaces(str);
 		std::shared_ptr<ObjectNode> ret = std::make_shared<ObjectNode>();
 
 		if (!eatSymbol(str, '{')) {
 			return false;
 		}
+		eatSpaces(str);
 		// allow empty object
 		// look ahead
 		if (*str != '}') {
 			std::string key;
 			std::shared_ptr<Node> val;
 
-			if (!(eatString(str, key) && eatSymbol(str, ':') && eatValue(str, val))) {
+			eatSpaces(str);
+			bool good = false;
+			if (eatString(str, key)) {
+				eatSpaces(str);
+				if (eatSymbol(str, ':')) {
+					good = eatValue(str, val);
+				}
+			}
+			if (!good) {
 				return false;
 			}
 			ret->pairs.insert(std::make_pair(key, val));
 			// , str : val  , str : val ...
+			eatSpaces(str);
 			while (eatSymbol(str, ',')) {
-				if (!(eatString(str, key) && eatSymbol(str, ':') && eatValue(str, val))) {
+				eatSpaces(str);
+				good = false;
+				if (eatString(str, key)) {
+					eatSpaces(str);
+					if (eatSymbol(str, ':')) {
+						good = eatValue(str, val);
+					}
+				}
+				if (!good) {
 					return false;
 				}
 				ret->pairs.insert(std::make_pair(key, val));
 			}
 		}
+		eatSpaces(str);
 		if (!eatSymbol(str, '}')) {
 			return false;
 		}
@@ -349,11 +428,6 @@ public:
 
 		// remove comment line
 		// todo...
-
-		// remove white space charactor
-		trimmed.erase(std::remove_if(trimmed.begin(), trimmed.end(), [](const char& c) {
-			return (c == ' ' || c == '\t' || c == '\r' || c == '\n');
-		}), trimmed.end());
 
 		std::shared_ptr<Node> ret;
 		const char* ptr = trimmed.c_str();

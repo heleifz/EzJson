@@ -1,11 +1,6 @@
 {
-	"ddd" : [1, 2, 3.33e+10, 4, 5],
-	"b" : 3,
-	"k" : "sdf      sad f",
-	"c" : {},
-	"d" : null,
 	"hahaha" : {
-		"asdfasdf" : 6,
+		"asdfasdf" : "da jia hao wo",
 		"a" : [1234, { "kasdf" : 6, "asdf" : 77.3e10, "nishuo" : { "a" : 4} }  , 4]
 	}
 }

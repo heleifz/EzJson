@@ -25,7 +25,7 @@ public:
 		stream << (ptr->value ? "true" : "false");
 	}
 	void visit(StringNode* ptr) {
-		stream << ptr->value;
+		stream << '"' << ptr->value << '"';
 	}
 	void visit(ArrayNode* ptr) {
 		stream << "[";
@@ -50,7 +50,7 @@ public:
 
 		if (!ptr->pairs.empty()) {
 			auto i = ptr->pairs.begin();
-			stream << std::string(indent, ' ') << i->first << " : ";
+			stream << std::string(indent, ' ') << '"' << i->first << '"' << " : ";
 			if (i->second) {
 				i->second->acceptVisitor(shared_from_this());
 			}
@@ -85,10 +85,14 @@ int main() {
 
 			std::cout << "file string size : " << s.size() << std::endl;
 			std::shared_ptr<Node> result = Parser::parse(s);
+			std::shared_ptr<Visitor> v = std::make_shared<PrintVisitor<std::ostream>>(std::cout);
+			// operation
+			std::cout << "chaining test:\n";
+			result->field("hahaha")->field("a")->acceptVisitor(v);
+			std::cout << "\n";
 
 			std::cout << "file" << std::endl;
 			std::cout << "=============== visitor test ======================\n";
-			std::shared_ptr<Visitor> v = std::make_shared<PrintVisitor<std::ostream>>(std::cout);
 			result->acceptVisitor(v);
 		}
 		else {
