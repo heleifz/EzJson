@@ -8,6 +8,7 @@
 #include <fstream>
 #include <streambuf>
 #include <string>
+#include <ctime>
 
 template <class STREAM>
 class PrintVisitor : public Visitor {
@@ -45,7 +46,7 @@ public:
 	// 只有object才缩进
 	void visit(ObjectNode* ptr) {
 		// 换行 - 缩进 - 花括号
-		stream << std::endl << std::string(indent, ' ') << "{" << std::endl;
+		stream << (indent == 0 ? "" : "\n") << std::string(indent, ' ') << "{" << std::endl;
 		indent += 4;
 
 		if (!ptr->pairs.empty()) {
@@ -57,7 +58,7 @@ public:
 			i++;
 			for (; i != ptr->pairs.end(); ++i) {
 				stream << ",\n";
-				stream << std::string(indent, ' ') << i->first << " : ";
+				stream << std::string(indent, ' ') << '"' << i->first << '"' << " : ";
 				if (i->second) {
 					i->second->acceptVisitor(shared_from_this());
 				}
@@ -77,19 +78,23 @@ int main() {
 	// detect memory leak
 	{
 		// read entire file into string
-		std::ifstream is("test.txt");
+		std::ifstream is("test5.txt");
 		std::ofstream os("testout.txt");
 		if (is) {
 			auto in = std::istreambuf_iterator<char>(is);
 			std::string s(in, std::istreambuf_iterator<char>());
 
 			std::cout << "file string size : " << s.size() << std::endl;
-			std::shared_ptr<Node> result = Parser::parse(s);
-			std::shared_ptr<Visitor> v = std::make_shared<PrintVisitor<std::ostream>>(std::cout);
+			clock_t t1 = clock();
+			std::shared_ptr<Node> result;
+			for (int i = 0; i != 1; ++i)
+				result = Parser::parse(s);
+			std::cout << "parse time : " << clock() - t1 << " ms\n";
+			std::shared_ptr<Visitor> v = std::make_shared<PrintVisitor<std::ostream>>(os);
 			// operation
-			std::cout << "chaining test:\n";
-			result->field("hahaha")->field("a")->acceptVisitor(v);
-			std::cout << "\n";
+			//std::cout << "chaining test:\n";
+			//result->field("hahaha")->field("a")->acceptVisitor(v);
+			//std::cout << "\n";
 
 			std::cout << "file" << std::endl;
 			std::cout << "=============== visitor test ======================\n";
