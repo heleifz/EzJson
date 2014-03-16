@@ -557,4 +557,82 @@ public:
 	}
 };
 
+template <class STREAM>
+class PrintVisitor : public Visitor
+{
+private:
+	int indent;
+	STREAM& stream;
+public:
+	// initial indention is 0
+	PrintVisitor(STREAM& s) : stream(s), indent(0) {}
+
+	void visit(NumberNode* ptr)
+	{
+		stream << ptr->value;
+	}
+	void visit(BoolNode* ptr)
+	{
+		stream << (ptr->value ? "true" : "false");
+	}
+	void visit(StringNode* ptr)
+	{
+		stream << '"' << ptr->value << '"';
+	}
+	void visit(ArrayNode* ptr)
+	{
+		stream << "[";
+		for (int i = 0; i != ptr->childs.size(); ++i)
+		{
+			if (ptr->childs[i])
+			{
+				ptr->childs[i]->acceptVisitor(shared_from_this());
+			}
+			else
+			{
+				stream << "null";
+			}
+			if (i != ptr->childs.size() - 1)
+			{
+				stream << ", ";
+			}
+		}
+		stream << "]";
+	}
+	// 只有object才缩进
+	void visit(ObjectNode* ptr)
+	{
+		// 换行 - 缩进 - 花括号
+		stream << (indent == 0 ? "" : "\n") << std::string(indent, ' ') << "{" << std::endl;
+		indent += 4;
+
+		if (!ptr->pairs.empty())
+		{
+			auto i = ptr->pairs.begin();
+			stream << std::string(indent, ' ') << '"' <<
+				i->first << '"' << " : ";
+			if (i->second)
+			{
+				i->second->acceptVisitor(shared_from_this());
+			}
+			i++;
+			for (; i != ptr->pairs.end(); ++i)
+			{
+				stream << ",\n";
+				stream << std::string(indent, ' ') << '"' << i->first << '"' << " : ";
+				if (i->second)
+				{
+					i->second->acceptVisitor(shared_from_this());
+				}
+				else
+				{
+					stream << "null";
+				}
+			}
+		}
+		indent -= 4;
+		stream << std::endl << std::string(indent, ' ') << "}";
+	}
+};
+
 #endif
