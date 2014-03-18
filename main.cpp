@@ -12,11 +12,10 @@
 
 int main()
 {
-
 	// detect memory leak
 	{
 		// read entire file into string
-		std::ifstream is("test5.txt");
+		std::ifstream is("test3.txt");
 		std::ofstream os("testout.txt");
 		if (is)
 		{
@@ -31,9 +30,10 @@ int main()
 			std::cout << "parse time : " << clock() - t1 << " ms\n";
 			std::shared_ptr<Visitor> v = std::make_shared<PrintVisitor<std::ostream>>(os);
 			// operation
-			//std::cout << "chaining test:\n";
-			//result->field("hahaha")->field("a")->acceptVisitor(v);
-			//std::cout << "\n";
+			std::cout << "chaining test:\n";
+			std::cout << result->field("jobs")->at(0)->field("color")->asString();
+
+			std::cout << "\n";
 
 			std::cout << "file" << std::endl;
 			std::cout << "=============== visitor test ======================\n";

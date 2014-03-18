@@ -8,7 +8,8 @@
 
 class NumberNode;
 class StringNode;
-class BoolNode;
+class TrueNode;
+class FalseNode;
 class ArrayNode;
 class ObjectNode;
 
@@ -16,7 +17,8 @@ class Visitor : public std::enable_shared_from_this<Visitor>
 {
 public:
 	virtual void visit(NumberNode* ptr) = 0;
-	virtual void visit(BoolNode* ptr) = 0;
+	virtual void visit(TrueNode* ptr) = 0;
+	virtual void visit(FalseNode* ptr) = 0;
 	virtual void visit(StringNode* ptr) = 0;
 	virtual void visit(ArrayNode* ptr) = 0;
 	virtual void visit(ObjectNode* ptr) = 0;
@@ -63,18 +65,16 @@ public:
 	{
 		visitor->visit(this);
 	}
-	NumberNode(double val) : value(val) {}
+	NumberNode(const std::string& val) : value(val) {}
 	virtual double asDouble()
 	{
-		return value;;
+		return std::stod(value);
 	}
 	virtual std::string asString()
 	{
-		std::stringstream ss;
-		ss << value;
-		return ss.str();
+		return value;
 	}
-	double value;
+	std::string value;
 };
 
 // string
@@ -94,41 +94,53 @@ public:
 };
 
 // true / false
-class BoolNode : public Node
+class TrueNode : public Node
 {
 public:
 	void acceptVisitor(std::shared_ptr<Visitor> visitor)
 	{
 		visitor->visit(this);
 	}
-	BoolNode(bool val) : value(val) {}
 	virtual double asDouble()
 	{
-		return static_cast<bool>(value);
+		return 1.0;
 	}
 	virtual std::string asString()
 	{
-		if (value)
-		{
-			return "true";
-		}
-		else
-		{
-			return "false";
-		}
+		return "true";
 	}
 	virtual bool asBool()
 	{
-		return value;
+		return true;
 	}
-	bool value;
+};
+
+class FalseNode : public Node
+{
+public:
+	void acceptVisitor(std::shared_ptr<Visitor> visitor)
+	{
+		visitor->visit(this);
+	}
+	virtual double asDouble()
+	{
+		return 0.0;
+	}
+	virtual std::string asString()
+	{
+		return "false";
+	}
+	virtual bool asBool()
+	{
+		return false;
+	}
 };
 
 // **************************
 // null node is a "nullptr"
 // **************************
 
-// use vector for array 
+// use vector for array
 
 class ArrayNode : public Node
 {
@@ -204,7 +216,7 @@ private:
 			}
 			else if (eatSymbol(str, '*'))
 			{
-				// multi-line comment	
+				// multi-line comment
 				while (*str != '\0')
 				{
 					// reach the end of comment
@@ -253,7 +265,7 @@ private:
 
 	// number / string / true / false / null  -> return a "result"
 
-	static bool eatNumber(const char*& str, double& result)
+	static bool eatNumber(const char*& str, std::string& result)
 	{
 		const char* start = str;
 
@@ -294,7 +306,7 @@ private:
 			// eat rest
 			while (eatDigit(str));
 		}
-		result = std::stod(std::string(start, str));
+		result = std::string(start, str);
 		return true;
 	}
 
@@ -379,26 +391,16 @@ private:
 
 	// eat true / false
 
-	static bool eatTrue(const char*& str, bool& result)
+	static bool eatTrue(const char*& str)
 	{
-		if (eatSymbol(str, 't') && eatSymbol(str, 'r') &&
-			eatSymbol(str, 'u') && eatSymbol(str, 'e'))
-		{
-			result = true;
-			return true;
-		}
-		return false;
+		return (eatSymbol(str, 't') && eatSymbol(str, 'r') &&
+			eatSymbol(str, 'u') && eatSymbol(str, 'e'));
 	}
 
-	static bool eatFalse(const char*& str, bool& result)
+	static bool eatFalse(const char*& str)
 	{
-		if (eatSymbol(str, 'f') && eatSymbol(str, 'a') &&
-			eatSymbol(str, 'l') && eatSymbol(str, 's') && eatSymbol(str, 'e'))
-		{
-			result = false;
-			return true;
-		}
-		return false;
+		return (eatSymbol(str, 'f') && eatSymbol(str, 'a') &&
+			eatSymbol(str, 'l') && eatSymbol(str, 's') && eatSymbol(str, 'e'));
 	}
 
 	// compound value : returns a tree
@@ -407,11 +409,9 @@ private:
 	{
 		eatSpaces(str);
 		std::string val;
-		double dval;
-		bool bval;
-		if (eatNumber(str, dval))
+		if (eatNumber(str, val))
 		{
-			result = std::make_shared<NumberNode>(dval);
+			result = std::make_shared<NumberNode>(val);
 			return true;
 		}
 		else if (eatString(str, val))
@@ -427,9 +427,14 @@ private:
 		{
 			return true;
 		}
-		else if (eatFalse(str, bval) || eatTrue(str, bval))
+		else if (eatFalse(str))
 		{
-			result = std::make_shared<BoolNode>(bval);
+			result = std::make_shared<FalseNode>();
+			return true;
+		}
+		else if (eatTrue(str))
+		{
+			result = std::make_shared<TrueNode>();
 			return true;
 		}
 		else if (eatNull(str))
@@ -571,9 +576,13 @@ public:
 	{
 		stream << ptr->value;
 	}
-	void visit(BoolNode* ptr)
+	void visit(TrueNode* ptr)
 	{
-		stream << (ptr->value ? "true" : "false");
+		stream << "true";
+	}
+	void visit(FalseNode* ptr)
+	{
+		stream << "false";
 	}
 	void visit(StringNode* ptr)
 	{
