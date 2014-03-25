@@ -2,13 +2,9 @@
 #define __EZ_JSON__
 
 #include <sstream>
-#include <fstream>
 #include <vector>
 #include <map>
 #include <memory>
-
-namespace __JSONDetail
-{
 
 class NumberNode;
 class StringNode;
@@ -30,6 +26,7 @@ public:
 
 class NotAnObjectError {};
 class NotAnArrayError {};
+
 class NotConvertibleError {};
 
 // abstract syntax tree
@@ -59,10 +56,10 @@ public:
 	{
 		throw NotConvertibleError();
 	}
-	virtual std::vector<std::shared_ptr<Node>>& asVectorRef() {
+	virtual std::vector<std::shared_ptr<Node>>& asVector() {
 		throw NotConvertibleError();
 	}
-	virtual std::map<std::string, std::shared_ptr<Node>>& asMapRef() {
+	virtual std::map<std::string, std::shared_ptr<Node>>& asMap() {
 		throw NotConvertibleError();
 	}
 };
@@ -74,7 +71,7 @@ public:
 	{
 		visitor->visit(this);
 	}
-	explicit NumberNode(const std::string& val) : value(val) {}
+	NumberNode(const std::string& val) : value(val) {}
 	virtual double asDouble()
 	{
 		return std::stod(value);
@@ -83,15 +80,19 @@ public:
 	{
 		return value;
 	}
-private:
+<<<<<<< Updated upstream
 	std::string value;
+=======
+private:
+	double value;
+>>>>>>> Stashed changes
 };
 
 // string
 class StringNode : public Node
 {
 public:
-	explicit StringNode(const std::string& val) : value(val) { }
+	StringNode(const std::string& val) : value(val) { }
 	void acceptVisitor(std::shared_ptr<Visitor> visitor)
 	{
 		visitor->visit(this);
@@ -100,7 +101,6 @@ public:
 	{
 		return value;
 	}
-private:
 	std::string value;
 };
 
@@ -165,10 +165,9 @@ public:
 	{
 		visitor->visit(this);
 	}
-	virtual std::vector<std::shared_ptr<Node>>& asVectorRef() {
+	virtual std::vector<std::shared_ptr<Node>>& asVector() {
 		return childs;
 	}
-private:
 	std::vector<std::shared_ptr<Node>> childs;
 };
 
@@ -183,10 +182,9 @@ public:
 	{
 		visitor->visit(this);
 	}
-	virtual std::map<std::string, std::shared_ptr<Node>>& asMapRef() {
+	virtual std::map<std::string, std::shared_ptr<Node>>& asMap() {
 		return pairs;
 	}
-private:
 	std::map<std::string, std::shared_ptr<Node>> pairs;
 };
 
@@ -194,10 +192,11 @@ private:
 
 // a recursive descending json parser
 
-namespace Parser
+class Parser
 {
+private:
 	// primitive "eaters", they dont generate result
-	bool eatSymbol(const char*& str, char sym)
+	static bool eatSymbol(const char*& str, char sym)
 	{
 		if (*str == sym)
 		{
@@ -207,8 +206,7 @@ namespace Parser
 		return false;
 	}
 
-	bool eatComment(const char*& str);
-	void eatSpaces(const char*& str)
+	static void eatSpaces(const char*& str)
 	{
 		while (*str == '\n' || *str == '\t' ||
 			*str == '\r' || *str == ' ')
@@ -220,7 +218,7 @@ namespace Parser
 	}
 
 	// support c-style one line or multi-line comment
-	bool eatComment(const char*& str)
+	static bool eatComment(const char*& str)
 	{
 		// comment start
 		if (eatSymbol(str, '/'))
@@ -258,12 +256,12 @@ namespace Parser
 		return true;
 	}
 
-	bool eatZeroDigit(const char*& str)
+	static bool eatZeroDigit(const char*& str)
 	{
 		return eatSymbol(str, '0');
 	}
 
-	bool eatNonZeroDigit(const char*& str)
+	static bool eatNonZeroDigit(const char*& str)
 	{
 		if (*str <= '9' && *str > '0')
 		{
@@ -273,7 +271,7 @@ namespace Parser
 		return false;
 	}
 
-	bool eatDigit(const char*& str)
+	static bool eatDigit(const char*& str)
 	{
 		if (*str <= '9' && *str >= '0')
 		{
@@ -285,7 +283,7 @@ namespace Parser
 
 	// number / string / true / false / null  -> return a "result"
 
-	bool eatNumber(const char*& str, std::string& result)
+	static bool eatNumber(const char*& str, std::string& result)
 	{
 		const char* start = str;
 
@@ -332,7 +330,7 @@ namespace Parser
 
 	// eat string
 
-	bool eatString(const char*& str, std::string& result)
+	static bool eatString(const char*& str, std::string& result)
 	{
 		const char* start = str;
 		const char table[] =
@@ -399,7 +397,7 @@ namespace Parser
 
 	// eat null
 
-	bool eatNull(const char*& str)
+	static bool eatNull(const char*& str)
 	{
 		if (eatSymbol(str, 'n') && eatSymbol(str, 'u') &&
 			eatSymbol(str, 'l') && eatSymbol(str, 'l'))
@@ -411,13 +409,13 @@ namespace Parser
 
 	// eat true / false
 
-	bool eatTrue(const char*& str)
+	static bool eatTrue(const char*& str)
 	{
 		return (eatSymbol(str, 't') && eatSymbol(str, 'r') &&
 			eatSymbol(str, 'u') && eatSymbol(str, 'e'));
 	}
 
-	bool eatFalse(const char*& str)
+	static bool eatFalse(const char*& str)
 	{
 		return (eatSymbol(str, 'f') && eatSymbol(str, 'a') &&
 			eatSymbol(str, 'l') && eatSymbol(str, 's') && eatSymbol(str, 'e'));
@@ -425,9 +423,7 @@ namespace Parser
 
 	// compound value : returns a tree
 
-	bool eatArray(const char*& str, std::shared_ptr<Node>& result);
-	bool eatObject(const char*& str, std::shared_ptr<Node>& result);
-	bool eatValue(const char*& str, std::shared_ptr<Node>& result)
+	static bool eatValue(const char*& str, std::shared_ptr<Node>& result)
 	{
 		eatSpaces(str);
 		std::string val;
@@ -467,7 +463,7 @@ namespace Parser
 		return false;
 	}
 
-	bool eatArray(const char*& str, std::shared_ptr<Node>& result)
+	static bool eatArray(const char*& str, std::shared_ptr<Node>& result)
 	{
 		std::shared_ptr<ArrayNode> ret = std::make_shared<ArrayNode>();
 
@@ -485,7 +481,7 @@ namespace Parser
 			{
 				return false;
 			}
-			ret->asVectorRef().push_back(one);
+			ret->childs.push_back(one);
 			eatSpaces(str);
 
 			// ,value  ,value (trailling comma is not allowed)
@@ -495,7 +491,7 @@ namespace Parser
 				{
 					return false;
 				}
-				ret->asVectorRef().push_back(one);
+				ret->childs.push_back(one);
 				eatSpaces(str);
 			}
 		}
@@ -509,7 +505,7 @@ namespace Parser
 		return true;
 	}
 
-	bool eatObject(const char*& str, std::shared_ptr<Node>& result)
+	static bool eatObject(const char*& str, std::shared_ptr<Node>& result)
 	{
 		std::shared_ptr<ObjectNode> ret = std::make_shared<ObjectNode>();
 
@@ -538,7 +534,7 @@ namespace Parser
 			{
 				return false;
 			}
-			ret->asMapRef().insert(std::make_pair(key, val));
+			ret->pairs.insert(std::make_pair(key, val));
 			// , str : val  , str : val ...
 			eatSpaces(str);
 			while (eatSymbol(str, ','))
@@ -557,7 +553,7 @@ namespace Parser
 				{
 					return false;
 				}
-				ret->asMapRef().insert(std::make_pair(key, val));
+				ret->pairs.insert(std::make_pair(key, val));
 			}
 		}
 		eatSpaces(str);
@@ -568,7 +564,8 @@ namespace Parser
 		result = ret;
 		return true;
 	}
-	std::shared_ptr<Node> parse(const std::string& str)
+public:
+	static std::shared_ptr<Node> parse(const std::string& str)
 	{
 		std::shared_ptr<Node> ret;
 		const char* ptr = str.c_str();
@@ -581,7 +578,7 @@ namespace Parser
 			return nullptr;
 		}
 	}
-}
+};
 
 template <class STREAM>
 class PrintVisitor : public Visitor
@@ -599,11 +596,15 @@ public:
 	}
 	void visit(TrueNode* ptr)
 	{
-		stream << ptr->asString();
+<<<<<<< Updated upstream
+		stream << "true";
 	}
 	void visit(FalseNode* ptr)
 	{
+		stream << "false";
+=======
 		stream << ptr->asString();
+>>>>>>> Stashed changes
 	}
 	void visit(StringNode* ptr)
 	{
@@ -612,7 +613,7 @@ public:
 	void visit(ArrayNode* ptr)
 	{
 		stream << "[";
-		auto& vec = ptr->asVectorRef();
+		auto vec = ptr->asVector();
 		for (int i = 0; i != vec.size(); ++i)
 		{
 			if (vec[i])
@@ -630,12 +631,14 @@ public:
 		}
 		stream << "]";
 	}
+	// ֻ��object������
 	void visit(ObjectNode* ptr)
 	{
+		// ���� - ���� - �����
 		stream << (indent == 0 ? "" : "\n") << std::string(indent, ' ') << "{" << std::endl;
 		indent += 4;
 
-		auto& mp = ptr->asMapRef();
+		auto mp = ptr->asMap();
 
 		if (!mp.empty())
 		{
@@ -665,115 +668,5 @@ public:
 		stream << std::endl << std::string(indent, ' ') << "}";
 	}
 };
-
-// fluent interface
-
-class JSON {
-public:
-	// static factory functions
-	template <typename T>
-	static JSON fromNumber(T num) {
-		std::stringstream ss;
-		ss << num;
-		auto n = std::make_shared<NumberNode>(ss.str());
-		return JSON(n);
-	}
-	static JSON fromBool(bool b)
-	{
-		if (b)
-		{
-			return JSON(std::make_shared<TrueNode>());
-		}
-		else
-		{
-			return JSON(std::make_shared<FalseNode>());
-		}
-	}
-	static JSON fromString(const std::string& str)
-	{
-		return JSON(std::make_shared<StringNode>(str));
-	}
-	static JSON makeObject()
-	{
-		return JSON(std::make_shared<ObjectNode>());
-	}
-	static JSON makeArray()
-	{
-		return JSON(std::make_shared<ArrayNode>());
-	}
-
-	// construct from file
-	explicit JSON(const char *path) {
-		std::ifstream is(path);
-		auto in = std::istreambuf_iterator<char>(is);
-		std::string s(in, std::istreambuf_iterator<char>());;
-		node = Parser::parse(s);
-	}
-	JSON field(const std::string& key) const
-	{
-		return JSON(node->field(key));
-	}
-	JSON at(int idx) const
-	{
-		return JSON(node->at(idx));
-	}
-	double asDouble() const
-	{
-		return node->asDouble();
-	}
-	std::string asString() const
-	{
-		std::stringstream ss;
-		auto v = std::make_shared<PrintVisitor<std::stringstream>>(ss);
-		node->acceptVisitor(v);
-		return ss.str();
-	}
-	bool asBool() const
-	{
-		return node->asBool();
-	}
-	JSON& append(const JSON& child)
-	{
-		node->asVectorRef().push_back(child.node);
-		return *this;
-	}
-	JSON& set(int idx, const JSON& child)
-	{
-		node->asVectorRef()[idx] = child.node;
-		return *this;
-	}
-	JSON& set(const std::string& field, const JSON& value)
-	{
-		node->asMapRef()[field] = value.node;
-		return *this;
-	}
-	std::vector<std::string> allFields() const
-	{
-		auto& mp = node->asMapRef();
-		std::vector<std::string> result;
-		for (auto i = mp.begin(); i != mp.end(); ++i)
-		{
-			result.push_back(i->first);
-		}
-		return result;
-	}
-	int arraySize() {
-		return node->asVectorRef().size();
-	}
-private:
-	JSON(std::shared_ptr<Node> data) : node(data) {}
-	std::shared_ptr<Node> node;
-};
-
-}
-
-using __JSONDetail::JSON;
-
-template <typename STREAM>
-STREAM& operator<<(STREAM& s, const JSON& json)
-{
-	s << json.asString();
-	return s;
-}
 
 #endif

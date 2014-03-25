@@ -14,35 +14,28 @@ int main()
 {
 	// detect memory leak
 	{
-		// read entire file into string
-		std::ifstream is("test3.txt");
-		std::ofstream os("testout.txt");
-		if (is)
-		{
-			auto in = std::istreambuf_iterator<char>(is);
-			std::string s(in, std::istreambuf_iterator<char>());
+		JSON j("test5.txt");
 
-			std::cout << "file string size : " << s.size() << std::endl;
-			clock_t t1 = clock();
-			std::shared_ptr<Node> result;
-			for (int i = 0; i != 1; ++i)
-				result = Parser::parse(s);
-			std::cout << "parse time : " << clock() - t1 << " ms\n";
-			std::shared_ptr<Visitor> v = std::make_shared<PrintVisitor<std::ostream>>(os);
-			// operation
-			std::cout << "chaining test:\n";
-			std::cout << result->field("jobs")->at(0)->field("color")->asString();
+		auto db = j.field("instruments").
+					at(0).
+					field("default_pan").
+					asDouble();
 
-			std::cout << "\n";
+		std::cout << db;
 
-			std::cout << "file" << std::endl;
-			std::cout << "=============== visitor test ======================\n";
-			result->acceptVisitor(v);
-		}
-		else
-		{
-			std::cout << "Could not open test.txt\n";
-		}
+		JSON other = JSON::makeObject().
+			set("hello", JSON::fromNumber(3)).
+			set("world", JSON::fromBool(true)).
+			set("hello", JSON::fromString("nihao")).
+			set("f", JSON::fromString("F word"));
+
+		JSON another = JSON::makeArray().append(other).append(JSON::fromNumber(4.3));
+
+		std::cout << another;
+		
+		std::ofstream ofs("testout.txt");
+		ofs << another;
+
 	}
 	_CrtDumpMemoryLeaks();
 	return 0;
