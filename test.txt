@@ -1,6 +1,21 @@
 {
+/* asdfasdf 
+asdf   dsf sadf sdf sdaf 
+sadf   sdaf sadf sdaf d
+ds fdsf 
+asdf 
+asdf sad f
+*/
+
+/* asdfasdf 
+asdf   dsf sadf sdf sdaf 
+sadf   sdaf sadf sdaf d
+ds fdsf 
+asdf 
+asdf sad f
+*/
 	"hahaha" : {
 		"asdfasdf" : "da jia hao wo",
-		"a" : [1234, { "kasdf" : 6, "asdf" : 77.3e10, "nishuo" : { "a" : 4} }  , 4]
+		"a" : [1234, { "kasdf" : 6, "asdf" : 77.3e10, "nishuo" : { "a" : 4} }  , 4, "adf", true, false, null]
 	}
 }

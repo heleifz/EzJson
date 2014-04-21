@@ -10,11 +10,26 @@
 #include <string>
 #include <ctime>
 
+
 int main()
 {
+	int position = 0;
+	std::ifstream is("test.txt");
+	auto in = std::istreambuf_iterator<char>(is);
+	std::string s(in, std::istreambuf_iterator<char>());;
+	const char* f = s.c_str();
+	Scanner scan(f);
+	while (1)
+	{
+		if (scan.lookahead() == TokenType::EOS)
+			break;
+		std::cout << scan.lookahead() << " && " << scan.text() << std::endl;
+		scan.next();
+	}
+
 	// detect memory leak
 	{
-		JSON j("test5.txt");
+	/*	JSON j("test5.txt");
 
 		auto db = j.field("instruments").
 					at(0).
@@ -35,7 +50,7 @@ int main()
 		
 		std::ofstream ofs("testout.txt");
 		ofs << another;
-
+*/
 	}
 	_CrtDumpMemoryLeaks();
 	return 0;

@@ -4,17 +4,9 @@
 // Settings may also be placed in file type specific options files, for
 // example, in Packages/Python/Python.sublime-settings for python files.
 {
-	// asdf asdf 
-///sadf
-/* asdfasdf 
 
 
-asdf   dsf sadf sdf sdaf 
-sadf   sdaf sadf sdaf d
-ds fdsf 
-asdf 
-asdf sad f
-*/
+	
     // Sets the colors used within the text area
     "color_scheme": "Packages/Color Scheme - Default/Monokai.tmTheme",
     // Note that the font_face and font_size are overriden in the platform
