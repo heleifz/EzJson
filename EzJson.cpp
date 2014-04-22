@@ -1,7 +1,7 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 #include "EzJson.h"
 
@@ -23,14 +23,9 @@ public:
 	{
 		char state = START;
 		tokenBegin = tokenEnd;
-		while (1)
+		while (*tokenEnd != '\0')
 		{
 			char current = *tokenEnd;
-			if (current == '\0')
-			{
-				type = EOS;
-				return;
-			}
 			tokenEnd++;
 			switch (state)
 			{
@@ -98,9 +93,10 @@ public:
 				}
 				break;
 			case NUMCONTENT:
-				if (!(current == 'e' || current == 'E' ||
-					current == '+' || current == '-' ||
-					current == '.' || isDigit(current)))
+				if (!(isDigit(current) || 
+					  current == '.' ||
+					  current == 'e' || current == 'E' ||
+					  current == '+' || current == '-'))
 				{
 					// backup
 					tokenEnd--;
@@ -164,6 +160,8 @@ public:
 				break;
 			}
 		}
+		type = EOS;
+		return;
 	}
 	TokenType lookahead()
 	{
@@ -177,6 +175,19 @@ public:
 	{
 		if (t == type)
 		{
+			next();
+		}
+		else
+		{
+			throw ParseError();
+		}
+	}
+	void match(TokenType t, const char*& b, const char*& e)
+	{
+		if (t == type)
+		{
+			b = tokenBegin;
+			e = tokenEnd;
 			next();
 		}
 		else
@@ -264,7 +275,7 @@ public:
 	virtual std::vector<std::shared_ptr<Node>>& asVectorRef() {
 		throw NotConvertibleError();
 	}
-	virtual std::map<std::string, std::shared_ptr<Node>>& asMapRef() {
+	virtual std::unordered_map<std::string, std::shared_ptr<Node>>& asMapRef() {
 		throw NotConvertibleError();
 	}
 };
@@ -273,6 +284,7 @@ class NumberNode : public Node
 {
 public:
 	explicit NumberNode(const std::string& val) : value(val) {}
+	explicit NumberNode(std::string&& val) { value.swap(val); }
 	void acceptVisitor(std::shared_ptr<Visitor> visitor)
 	{
 		visitor->visit(this);
@@ -294,6 +306,7 @@ class StringNode : public Node
 {
 public:
 	explicit StringNode(const std::string& val) : value(val) {}
+	explicit StringNode(std::string&& val) { value.swap(val); }
 	void acceptVisitor(std::shared_ptr<Visitor> visitor)
 	{
 		visitor->visit(this);
@@ -352,7 +365,7 @@ public:
 class ArrayNode : public Node
 {
 public:
-	ArrayNode() {}
+	ArrayNode() { }
 	virtual std::shared_ptr<Node> at(int idx)
 	{
 		return childs[idx];
@@ -379,11 +392,11 @@ public:
 	{
 		visitor->visit(this);
 	}
-	virtual std::map<std::string, std::shared_ptr<Node>>& asMapRef() {
+	virtual std::unordered_map<std::string, std::shared_ptr<Node>>& asMapRef() {
 		return pairs;
 	}
 private:
-	std::map<std::string, std::shared_ptr<Node>> pairs;
+	std::unordered_map<std::string, std::shared_ptr<Node>> pairs;
 };
 
 class Parser {
@@ -393,9 +406,9 @@ public:
 	{ }
 	std::shared_ptr<Node> parseNumber()
 	{
-		std::string val;
-		scanner.match(NUM, val);
-		return std::make_shared<NumberNode>(val);
+		const char *b, *e;
+		scanner.match(NUM, b, e);
+		return std::make_shared<NumberNode>(std::string(b, e));
 	}
 	std::shared_ptr<Node> parseTrue()
 	{
@@ -414,10 +427,9 @@ public:
 	}
 	std::shared_ptr<Node> parseString()
 	{
-		std::string val;
-		scanner.match(STR, val);
-		return std::make_shared<StringNode>(
-			std::string(val.begin() + 1, val.end() - 1));
+		const char *b, *e;
+		scanner.match(STR, b, e);
+		return std::make_shared<StringNode>(std::string(b + 1, e - 1));
 	}
 	std::shared_ptr<Node> parseValue()
 	{
@@ -470,21 +482,21 @@ public:
 			scanner.next();
 			return ret;
 		}
-		std::string key;
+		const char *b, *e;
 		std::shared_ptr<Node> val;
-		scanner.match(STR, key);
+		scanner.match(STR, b, e);
 		scanner.match(COL);
 		val = parseValue();
 		ret->asMapRef().insert(std::make_pair(
-			std::string(key.begin() + 1, key.end() - 1), val));
+			std::string(b + 1, e - 1), val));
 		while (scanner.lookahead() == COM)
 		{
 			scanner.next();
-			scanner.match(STR, key);
+			scanner.match(STR, b, e);
 			scanner.match(COL);
 			val = parseValue();
 			ret->asMapRef().insert(std::make_pair(
-				std::string(key.begin() + 1, key.end() - 1), val));
+				std::string(b + 1, e - 1), val));
 		}
 		scanner.match(RCU);
 		return ret;

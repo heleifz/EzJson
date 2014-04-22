@@ -34,11 +34,9 @@ int main()
 		std::cout << clock() - t << "\n";
 
 		rapidjson::Document d;
-
 		t = clock();
 		d.Parse<0>(str);
 		std::cout << clock() - t;
-
 
 		/*auto db = j.field("instruments").
 			at(0).
