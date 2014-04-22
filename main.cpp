@@ -10,28 +10,36 @@
 #include <string>
 #include <ctime>
 
+#include "rapidjson/document.h"
+#include "rapidjson/prettywriter.h"
+#include "rapidjson/filestream.h"
 
 int main()
 {
-	//int position = 0;
-	//std::ifstream is("test.txt");
-	//auto in = std::istreambuf_iterator<char>(is);
-	//std::string s(in, std::istreambuf_iterator<char>());;
-	//const char* f = s.c_str();
-	//Scanner scan(f);
-	//while (1)
-	//{
-	//	if (scan.lookahead() == TokenType::EOS)
-	//		break;
-	//	std::cout << scan.lookahead() << " && " << scan.text() << std::endl;
-	//	scan.next();
-	//}
-
 	// detect memory leak
 	{
+		FILE *f = fopen("test6.txt", "rb");
+		fseek(f, 0, SEEK_END);
+		long fsize = ftell(f);
+		fseek(f, 0, SEEK_SET);
+
+		char *str = new char[fsize + 1];
+		fread(str, fsize, 1, f);
+		fclose(f);
+
+		str[fsize] = 0;
+
 		clock_t t = clock();
-		JSON j("test5.txt");
+		JSON j(str);
+		std::cout << clock() - t << "\n";
+
+		rapidjson::Document d;
+
+		t = clock();
+		d.Parse<0>(str);
 		std::cout << clock() - t;
+
+
 		/*auto db = j.field("instruments").
 			at(0).
 			field("default_pan").

@@ -11,7 +11,6 @@ class NotAnObjectError {};
 class NotAnArrayError {};
 class NotConvertibleError {};
 
-
 class Scanner
 {
 public:
@@ -273,11 +272,11 @@ public:
 class NumberNode : public Node
 {
 public:
+	explicit NumberNode(const std::string& val) : value(val) {}
 	void acceptVisitor(std::shared_ptr<Visitor> visitor)
 	{
 		visitor->visit(this);
 	}
-	explicit NumberNode(const std::string& val) : value(val) {}
 	virtual double asDouble()
 	{
 		return std::stod(value);
@@ -417,7 +416,8 @@ public:
 	{
 		std::string val;
 		scanner.match(STR, val);
-		return std::make_shared<StringNode>(std::string(val.begin() + 1, val.end() - 1));
+		return std::make_shared<StringNode>(
+			std::string(val.begin() + 1, val.end() - 1));
 	}
 	std::shared_ptr<Node> parseValue()
 	{
@@ -453,7 +453,7 @@ public:
 			return ret;
 		}
 		ret->asVectorRef().push_back(parseValue());
-		while (scanner.lookahead() == ',')
+		while (scanner.lookahead() == COM)
 		{
 			scanner.next();
 			ret->asVectorRef().push_back(parseValue());
@@ -475,14 +475,16 @@ public:
 		scanner.match(STR, key);
 		scanner.match(COL);
 		val = parseValue();
-		ret->asMapRef().insert(std::make_pair(std::string(key.begin() + 1, key.end() - 1), val));
+		ret->asMapRef().insert(std::make_pair(
+			std::string(key.begin() + 1, key.end() - 1), val));
 		while (scanner.lookahead() == COM)
 		{
 			scanner.next();
 			scanner.match(STR, key);
 			scanner.match(COL);
 			val = parseValue();
-			ret->asMapRef().insert(std::make_pair(std::string(key.begin() + 1, key.end() - 1), val));
+			ret->asMapRef().insert(std::make_pair(
+				std::string(key.begin() + 1, key.end() - 1), val));
 		}
 		scanner.match(RCU);
 		return ret;
@@ -580,6 +582,7 @@ JSON JSON::fromNumber(double num) {
 	auto n = std::make_shared<NumberNode>(ss.str());
 	return JSON(n);
 }
+
 JSON JSON::fromBool(bool b)
 {
 	if (b)
@@ -591,53 +594,42 @@ JSON JSON::fromBool(bool b)
 		return JSON(std::make_shared<FalseNode>());
 	}
 }
+
 JSON JSON::fromString(const std::string& str)
 {
 	return JSON(std::make_shared<StringNode>(str));
 }
+
 JSON JSON::makeObject()
 {
 	return JSON(std::make_shared<ObjectNode>());
 }
+
 JSON JSON::makeArray()
 {
 	return JSON(std::make_shared<ArrayNode>());
 }
-// construct from file
-JSON::JSON(const char *path) {
-	FILE *f = fopen(path, "rb");
-	fseek(f, 0, SEEK_END);
-	long fsize = ftell(f);
-	fseek(f, 0, SEEK_SET);
 
-	auto content =  new char[fsize + 1];
-	fread(content, fsize, 1, f);
-	fclose(f);
-	content[fsize] = '\0';
-	try
-	{
-		Parser p = Parser(Scanner(content));
-		node = p.parseValue();
-		delete[] content;
-	}
-	catch (...)
-	{
-		delete[] content;
-		throw;
-	}
+JSON::JSON(const char *content) {
+	Parser p = Parser(Scanner(content));
+	node = p.parseValue();
 }
+
 JSON JSON::field(const std::string& key) const
 {
 	return JSON(node->field(key));
 }
+
 JSON JSON::at(int idx) const
 {
 	return JSON(node->at(idx));
 }
+
 double JSON::asDouble() const
 {
 	return node->asDouble();
 }
+
 std::string JSON::asString() const
 {
 	std::stringstream ss;
@@ -645,25 +637,30 @@ std::string JSON::asString() const
 	node->acceptVisitor(v);
 	return ss.str();
 }
+
 bool JSON::asBool() const
 {
 	return node->asBool();
 }
+
 JSON& JSON::append(const JSON& child)
 {
 	node->asVectorRef().push_back(child.node);
 	return *this;
 }
+
 JSON& JSON::set(int idx, const JSON& child)
 {
 	node->asVectorRef()[idx] = child.node;
 	return *this;
 }
+
 JSON& JSON::set(const std::string& field, const JSON& value)
 {
 	node->asMapRef()[field] = value.node;
 	return *this;
 }
+
 std::vector<std::string> JSON::allFields() const
 {
 	auto& mp = node->asMapRef();
@@ -674,6 +671,7 @@ std::vector<std::string> JSON::allFields() const
 	}
 	return result;
 }
+
 int JSON::arraySize() {
 	return node->asVectorRef().size();
 }
