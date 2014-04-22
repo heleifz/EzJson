@@ -1,7 +1,8 @@
 #include <sstream>
-#include <fstream>
 #include <vector>
 #include <unordered_map>
+#include <time.h>
+#include <iostream>
 
 #include "EzJson.h"
 
@@ -35,42 +36,39 @@ public:
 				{
 					tokenBegin++;
 				}
+				else if (current == '"')
+				{
+					state = STRINGCONTENT;
+				}
 				else if (current == 't')
 				{
-					if (*tokenEnd != 'r' || *(tokenEnd + 1) != 'u' ||
-						*(tokenEnd + 2) != 'e')
+					if (*(tokenEnd++) != 'r' || *(tokenEnd++) != 'u' ||
+						*(tokenEnd++) != 'e')
 					{
 						throw ScanError();
 					}
-					tokenEnd += 3;
 					type = TRU;
 					return;
 				}
 				else if (current == 'f')
 				{
-					if (*tokenEnd != 'a' || *(tokenEnd + 1) != 'l' ||
-						*(tokenEnd + 2) != 's' || *(tokenEnd + 3) != 'e')
+					if (*(tokenEnd++) != 'a' || *(tokenEnd++) != 'l' ||
+						*(tokenEnd++) != 's' || *(tokenEnd++) != 'e')
 					{
 						throw ScanError();
 					}
-					tokenEnd += 4;
 					type = FAL;
 					return;
 				}
 				else if (current == 'n')
 				{
-					if (*tokenEnd != 'u' || *(tokenEnd + 1) != 'l' ||
-						*(tokenEnd + 2) != 'l')
+					if (*(tokenEnd++) != 'u' || *(tokenEnd++) != 'l' ||
+						*(tokenEnd++) != 'l')
 					{
 						throw ScanError();
 					}
-					tokenEnd += 3;
 					type = NUL;
 					return;
-				}
-				else if (current == '"')
-				{
-					state = STRINGCONTENT;
 				}
 				else if (current == '/')
 				{
@@ -433,9 +431,7 @@ public:
 	}
 	std::shared_ptr<Node> parseValue()
 	{
-		TokenType tk = scanner.lookahead();
-		std::string val;
-		switch (tk)
+		switch (scanner.lookahead())
 		{
 		case NUM:
 			return parseNumber();
@@ -449,10 +445,8 @@ public:
 			return parseFalse();
 		case TRU:
 			return parseTrue();
-		case NUL:
-			return parseNull();
 		default:
-			throw ParseError();
+			return parseNull();
 		}
 	}
 	std::shared_ptr<Node> parseArray()
@@ -622,7 +616,15 @@ JSON JSON::makeArray()
 	return JSON(std::make_shared<ArrayNode>());
 }
 
-JSON::JSON(const char *content) {
+JSON::JSON(const char *content)
+{
+	clock_t c = clock();
+	Scanner s(content);
+	while (s.lookahead() != EOS)
+	{
+		s.next();
+	}
+	std::cout << "lex time:" << clock() - c << "ms\n";
 	Parser p = Parser(Scanner(content));
 	node = p.parseValue();
 }
