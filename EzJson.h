@@ -1,59 +1,26 @@
 #ifndef __EZ_JSON__
 #define __EZ_JSON__
 
+#include "include/parser.h"
+
 #include <string>
-#include <memory>
-#include <vector>
+#include <iostream>
 
-enum TokenType
-{
-	EOS = 0,
-	LCU = '{',
-	RCU = '}',
-	LBR = '[',
-	RBR = ']',
-	COM = ',',
-	COL = ':',
-	NUM,
-	STR,
-	TRU,
-	FAL,
-	NUL,
-	CMT
-};
-
-class Node;
+struct Node;
+class MemoryPool;
 
 // fluent interface
 class JSON {
 public:
-	static JSON fromNumber(double num);
-	static JSON fromBool(bool b);
-	static JSON fromString(const std::string& str);
-	static JSON makeObject();
-	static JSON makeArray();
-	// construct from file
-	explicit JSON(const char *path);
-	JSON field(const std::string& key) const;
-	JSON at(int idx) const;
-	double asDouble() const;
-	std::string asString() const;
-	bool asBool() const;
-	JSON& append(const JSON& child);
-	JSON& set(int idx, const JSON& child);
-	JSON& set(const std::string& field, const JSON& value);
-	std::vector<std::string> allFields() const;
-	int arraySize();
+	explicit JSON(const char *content)
+	{
+		DefaultAction a;
+		Parser<>(Scanner(content), a).parseValue();
+		std::cout << "total string : " << a.count << "\n";
+	}
 private:
-	JSON(std::shared_ptr<Node> data) : node(data) {}
-	std::shared_ptr<Node> node;
+	Node* node;
+	std::shared_ptr<MemoryPool> pool;
 };
-
-template <typename STREAM>
-STREAM& operator<<(STREAM& s, const JSON& json)
-{
-	s << json.asString();
-	return s;
-}
 
 #endif

@@ -165,7 +165,7 @@ public:
 	/*! \param chunkSize The size of memory chunk. The default is kDefaultChunkSize.
 		\param baseAllocator The allocator for allocating memory chunks.
 	*/
-	MemoryPoolAllocator(size_t chunkSize = kDefaultChunkCapacity, BaseAllocator* baseAllocator = 0) : 
+	MemoryPoolAllocator(size_t chunkSize = kDefaultChunkCapacity, BaseAllocator* baseAllocator = 0) :
 		chunkHead_(0), chunk_capacity_(chunkSize), userBuffer_(0), baseAllocator_(baseAllocator), ownBaseAllocator_(0)
 	{
 		if (!baseAllocator_)

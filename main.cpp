@@ -18,7 +18,7 @@ int main()
 {
 	// detect memory leak
 	{
-		FILE *f = fopen("test6.txt", "rb");
+		FILE *f = fopen("test2.txt", "rb");
 		fseek(f, 0, SEEK_END);
 		long fsize = ftell(f);
 		fseek(f, 0, SEEK_SET);
@@ -30,34 +30,17 @@ int main()
 		str[fsize] = 0;
 
 		clock_t t = clock();
-		JSON j(str);
-		std::cout << clock() - t << "\n";
+		//for (int i = 0; i < 100; ++i)
+			JSON j(str);
 
+		std::cout << clock() - t << "\n";
 		rapidjson::Document d;
 		t = clock();
+		//for (int i = 0; i < 100; ++i)
 		d.Parse<0>(str);
 		std::cout << "rapid json : " << clock() - t << "\n";
 
-		/*auto db = j.field("instruments").
-			at(0).
-			field("default_pan").
-			asDouble();
-
-			std::cout << db;
-
-			JSON other = JSON::makeObject().
-			set("hello", JSON::fromNumber(3)).
-			set("world", JSON::fromBool(true)).
-			set("hello", JSON::fromString("nihao")).
-			set("f", JSON::fromString("F word"));
-
-			JSON another = JSON::makeArray().append(other).append(JSON::fromNumber(4.3));
-
-			std::cout << another;
-
-			std::ofstream ofs("testout.txt");
-			ofs << another;*/
-
+		delete [] str;
 	}
 	_CrtDumpMemoryLeaks();
 	return 0;

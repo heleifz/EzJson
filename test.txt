@@ -1,19 +1,7 @@
-{
-/* asdfasdf 
-asdf   dsf sadf sdf sdaf 
-sadf   sdaf sadf sdaf d
-ds fdsf 
-asdf 
-asdf sad f
-*/
+// asdfsadfsdaf             adf
 
-/* asdfasdf 
-asdf   dsf sadf sdf sdaf 
-sadf   sdaf sadf sdaf d
-ds fdsf 
-asdf 
-asdf sad f
-*/
 
-	"hahaha" : false
-}
+
+
+// asdfasdf
+//
