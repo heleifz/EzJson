@@ -5,17 +5,14 @@
 #include <iostream>
 
 #include "scanner.h"
-#include "utils.h"
+#include "containers.h"
 
 class DefaultAction
 {
 public:
-	int count;
-	DefaultAction() : count(0) {}
-	void stringAction(const char *b, const char *e) { count++; }
+	void stringAction(const char *b, const char *e) {}
 	void numberAction(double val) {}
-	void trueAction() {}
-	void falseAction() {}
+	void boolAction(bool b) {}
 	void nullAction() {}
 	void beginArrayAction() {}
 	void endArrayAction(size_t size) {}
@@ -39,12 +36,12 @@ public:
 	void parseTrue()
 	{
 		scanner.match(TRU);
-		act.trueAction();
+		act.boolAction(true);
 	}
 	void parseFalse()
 	{
 		scanner.match(FAL);
-		act.falseAction();
+		act.boolAction(false);
 	}
 	void parseNull()
 	{

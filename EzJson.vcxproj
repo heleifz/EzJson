@@ -104,6 +104,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -135,7 +136,7 @@
     <ClInclude Include="include\globals.h" />
     <ClInclude Include="include\parser.h" />
     <ClInclude Include="include\scanner.h" />
-    <ClInclude Include="utils.h" />
+    <ClInclude Include="include\containers.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
