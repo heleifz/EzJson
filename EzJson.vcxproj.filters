@@ -18,14 +18,11 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ezjson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EzJson.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\scanner.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\globals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -33,6 +30,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\containers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\text_scanner.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\allocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ezjson.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

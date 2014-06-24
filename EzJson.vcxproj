@@ -129,13 +129,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ezjson.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EzJson.h" />
+    <ClInclude Include="ezjson.h" />
+    <ClInclude Include="include\allocator.h" />
     <ClInclude Include="include\globals.h" />
     <ClInclude Include="include\parser.h" />
-    <ClInclude Include="include\scanner.h" />
+    <ClInclude Include="include\text_scanner.h" />
     <ClInclude Include="include\containers.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

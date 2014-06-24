@@ -4,9 +4,6 @@
 #include <memory>
 #include <iostream>
 
-#include "scanner.h"
-#include "containers.h"
-
 class DefaultAction
 {
 public:
@@ -20,7 +17,7 @@ public:
 	void endObjectAction(size_t size) { }
 };
 
-template <typename Actions=DefaultAction>
+template <typename Scanner, typename Actions=DefaultAction>
 class Parser
 {
 public:
@@ -30,7 +27,7 @@ public:
 	void parseNumber()
 	{
 		double val;
-		scanner.match(NUM, val);
+		scanner.matchDouble(val);
 		act.numberAction(val);
 	}
 	void parseTrue()
@@ -51,7 +48,7 @@ public:
 	void parseString()
 	{
 		const char *b, *e;
-		scanner.match(STR, b, e);
+		scanner.matchString(b, e);
 		act.stringAction(++b, --e);
 	}
 	void parseValue()
