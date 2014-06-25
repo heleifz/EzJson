@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <deque>
+#include <sstream>
 
 /**
  * AST Node
@@ -15,22 +16,38 @@
 
 struct Node
 {
-	virtual Node* at(size_t idx)
+	virtual void serialize(std::stringstream& ss, size_t indentLevel=0) = 0;
+
+	virtual Node* at(size_t)
 	{
 		throw NotAnArrayError();
 	}
-	virtual Node* field(const char* k)
+
+	virtual Node* key(const char*)
 	{
 		throw NotAnObjectError();
 	}
+
+	virtual void setAt(size_t, Node *)
+	{
+		throw NotAnArrayError();
+	}
+
+	virtual void setKey(const char*, Node*)
+	{
+		throw NotAnObjectError();
+	}
+
 	virtual size_t size()
 	{
 		throw NotAnArrayOrObjectError();
 	}
+
 	virtual std::vector<std::string> fields()
 	{
 		throw NotAnObjectError();
 	}
+
 	virtual double asDouble()
 	{
 		throw NotConvertibleError();
@@ -47,7 +64,7 @@ struct Node
 	{
 		return alc.alloc(sz);
 	}
-	void operator delete(void*, ChunkAllocator& alc)
+	void operator delete(void*, ChunkAllocator&)
 	{
 		// Do Nothing (let the chunk allocator to release the memory)
 	}
@@ -56,6 +73,10 @@ struct Node
 struct NumberNode : public Node
 {
 	NumberNode(double val) : data(val) {}
+	virtual void serialize(std::stringstream& ss, size_t)
+	{
+		ss << data;
+	}
 	double asDouble()
 	{
 		return data;
@@ -68,6 +89,11 @@ struct StringNode : public Node
 	StringNode(const char *b, const char *e, ChunkAllocator& alc)
 	: data(b, e, alc) {}
 
+	virtual void serialize(std::stringstream& ss, size_t)
+	{
+		ss << '"' << asString() << '"';
+	}
+
 	std::string asString()
 	{
 		return data.asSTLString();
@@ -79,6 +105,18 @@ struct StringNode : public Node
 struct BoolNode : public Node
 {
 	BoolNode(bool b) : data(b) {}
+	virtual void serialize(std::stringstream& ss, size_t)
+	{
+		if (data)
+		{
+			ss << "true";
+		}
+		else
+		{
+			ss << "false";
+		}
+	}
+
 	bool asBool()
 	{
 		return data;
@@ -88,12 +126,31 @@ struct BoolNode : public Node
 
 struct NullNode : public Node
 {
+	virtual void serialize(std::stringstream& ss, size_t)
+	{
+		ss << "null";
+	}
 };
 
 struct ArrayNode : public Node
 {
 	ArrayNode(ChunkAllocator& alloc)
 	: data(alloc) {}
+
+	virtual void serialize(std::stringstream& ss, size_t indentLevel)
+	{
+		ss << "[";
+		for (size_t i = 1; i < data.size(); ++i)
+		{
+			data[i - 1]->serialize(ss, indentLevel);
+			ss << ", ";
+		}
+		if (data.size() > 0)
+		{
+			data[size() - 1]->serialize(ss, indentLevel);
+		}
+		ss << "]";
+	}
 
 	Node* at(size_t idx)
 	{
@@ -112,7 +169,34 @@ struct ObjectNode : public Node
 	ObjectNode(ChunkAllocator& allocator)
 	: data(allocator) {}
 
-	Node* field(const char* k)
+	virtual void serialize(std::stringstream& ss, size_t indentLevel)
+	{
+		if (indentLevel > 0)
+		{
+			ss << "\n";
+		}
+		printIndent(ss, indentLevel);
+		ss << "{\n";
+		for (auto i = data.begin(); i < data.end() - 1; ++i)
+		{
+			printIndent(ss, indentLevel + 1);
+			ss << '"' << i->first.asSTLString() << "\" : ";
+			i->second->serialize(ss, indentLevel + 1);
+			ss << ",\n";
+		}
+		if (data.size() > 0)
+		{
+			auto last = data.end() - 1;
+			printIndent(ss, indentLevel + 1);
+			ss << '"' << last->first.asSTLString() << "\" : ";
+			last->second->serialize(ss, indentLevel + 1);
+		}
+		ss << "\n";
+		printIndent(ss, indentLevel);
+		ss << "}";
+	}
+
+	Node* key(const char* k)
 	{
 		return data.get(k);
 	}
@@ -125,6 +209,14 @@ struct ObjectNode : public Node
 	size_t size()
 	{
 		return data.size();
+	}
+
+	void printIndent(std::stringstream& ss, size_t indentLevel)
+	{
+		for (size_t i = 0; i < indentLevel; i++)
+		{
+			ss << "    ";
+		}
 	}
 
 	Dictionary<Node*> data;
@@ -218,9 +310,9 @@ EzJSON EzJSON::at(size_t idx)
 	return EzJSON(node->at(idx), allocator);
 }
 
-EzJSON EzJSON::field(const char *key)
+EzJSON EzJSON::key(const char *key)
 {
-	return EzJSON(node->field(key), allocator);
+	return EzJSON(node->key(key), allocator);
 }
 
 double EzJSON::asDouble() const
@@ -243,7 +335,14 @@ size_t EzJSON::size() const
 	return node->size();
 }
 
-std::vector<std::string> EzJSON::fields() const
+std::vector<std::string> EzJSON::keys() const
 {
 	return node->fields();
+}
+
+std::string EzJSON::serialize() const
+{
+	std::stringstream ss;
+	node->serialize(ss);
+	return ss.str();
 }

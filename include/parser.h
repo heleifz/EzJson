@@ -7,14 +7,14 @@
 class DefaultAction
 {
 public:
-	void stringAction(const char *b, const char *e) {}
-	void numberAction(double val) {}
-	void boolAction(bool b) {}
+	void stringAction(const char*, const char*) {}
+	void numberAction(double) {}
+	void boolAction(bool) {}
 	void nullAction() {}
 	void beginArrayAction() {}
-	void endArrayAction(size_t size) {}
+	void endArrayAction(size_t) {}
 	void beginObjectAction() {}
-	void endObjectAction(size_t size) { }
+	void endObjectAction(size_t) { }
 };
 
 template <typename Scanner, typename Actions=DefaultAction>

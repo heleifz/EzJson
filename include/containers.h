@@ -187,14 +187,7 @@ template <typename T>
 class Dictionary : public INonCopyable
 {
 private:
-	template <typename U, typename V>
-	struct Pair
-	{
-		U key;
-		V val;
-	};
-
-	Array<Pair<String, T> > data;
+	Array<std::pair<String, T> > data;
 
 public:
 	template <typename ALLOCATOR>
@@ -231,7 +224,7 @@ public:
 		{
 			throw IndexOutOfRangeError();
 		}
-		return data[result].val;
+		return data[result].second;
 	}
 
 	std::vector<std::string> keys() const
@@ -239,7 +232,7 @@ public:
 		std::vector<std::string> result;
 		for (auto i = data.begin(); i != data.end(); ++i)
 		{
-			result.push_back(i->key.asSTLString());
+			result.push_back(i->first.asSTLString());
 		}
 		return result;
 	}
@@ -247,7 +240,7 @@ public:
 	template <typename ALLOCATOR>
 	void insert(const String& k, const T& v, ALLOCATOR& allocator)
 	{
-		data.pushBack({ k, v }, allocator);
+		data.pushBack(std::make_pair(k, v), allocator);
 	}
 
 	void set(const String& k, const T& v)
@@ -257,16 +250,16 @@ public:
 		{
 			throw IndexOutOfRangeError();
 		}
-		data[result].val = v;
+		data[result].second = v;
 	}
 
 	// const iterators
-	const T* const begin()
+	const std::pair<String, T>* const begin() const
 	{
 		return data.begin();
 	}
 
-	const T* const end()
+	const std::pair<String, T>* const end() const
 	{
 		return data.end();
 	}
@@ -277,7 +270,7 @@ private:
 		int result = 0;
 		for (; result < static_cast<int>(data.size()); ++result)
 		{
-			if (data[result].key == key)
+			if (data[result].first == key)
 			{
 				return result;
 			}

@@ -29,14 +29,8 @@ int main()
 			clock_t t = clock();
 			//for (int i = 0; i < 1; ++i)
 			EzJSON j = EzJSON(contents.c_str());
-			std::cout << j.field("instruments").at(0).field("global_volume").asDouble() << std::endl;
+			std::cout << j.key("instruments").at(0).serialize() << std::endl;
 			//std::cout << clock() - t << "\n";
-
-		//	rapidjson::Document d;
-		//	t = clock();
-		//	for (int i = 0; i < 1; ++i)
-		//		d.Parse<0>(contents.c_str());
-		//	std::cout << "rapid json : " << clock() - t << "\n";
 
 		}
 	}

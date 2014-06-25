@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 
-class ChunkAllocator
+class ChunkAllocator : public INonCopyable
 {
 private:
 	struct ChunkInfo

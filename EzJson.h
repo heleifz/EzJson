@@ -15,13 +15,15 @@ public:
 
 	// fluent interface
 	size_t size() const;
-	std::vector<std::string> fields() const;
+	std::vector<std::string> keys() const;
 	double asDouble() const;
 	bool asBool() const;
 	std::string asString() const;
 
+	std::string serialize() const;
+
 	EzJSON at(size_t idx);
-	EzJSON field(const char *key);
+	EzJSON key(const char *key);
 
 private:
 
