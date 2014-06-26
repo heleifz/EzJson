@@ -1,9 +1,6 @@
 #ifndef __EZ_JSON_PARSER__
 #define __EZ_JSON_PARSER__
 
-#include <memory>
-#include <iostream>
-
 class DefaultAction
 {
 public:
@@ -18,7 +15,7 @@ public:
 };
 
 template <typename Scanner, typename Actions=DefaultAction>
-class Parser
+class Parser : public INonCopyable
 {
 public:
 	Parser(const Scanner& sc, Actions& a)
@@ -73,8 +70,10 @@ public:
 		case TRU:
 			parseTrue();
 			break;
-		default:
+		case NUL:
 			parseNull();
+			break;
+		default:
 			break;
 		}
 	}

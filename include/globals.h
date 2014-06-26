@@ -13,6 +13,7 @@ class OutOfMemoryError {};
 class IndexOutOfRangeError {};
 class DuplicateKeyError {};
 class NumberOverflowError {};
+class EmptyStringError {};
 
 class NotAnArrayError {};
 class NotAnObjectError {};

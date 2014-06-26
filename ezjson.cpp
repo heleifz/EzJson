@@ -3,8 +3,8 @@
 #include "include/globals.h"
 #include "include/text_scanner.h"
 #include "include/parser.h"
-#include "include/containers.h"
 #include "include/allocator.h"
+#include "include/containers.h"
 
 #include <memory>
 #include <deque>
@@ -28,12 +28,27 @@ struct Node
 		throw NotAnObjectError();
 	}
 
-	virtual void setAt(size_t, Node *)
+	virtual void append(Node*, ChunkAllocator&)
 	{
 		throw NotAnArrayError();
 	}
 
-	virtual void setKey(const char*, Node*)
+	virtual void setAt(size_t, Node*)
+	{
+		throw NotAnArrayError();
+	}
+
+	virtual void setKey(const char*, Node*, ChunkAllocator&)
+	{
+		throw NotAnObjectError();
+	}
+
+	virtual void removeAt(size_t)
+	{
+		throw NotAnArrayError();
+	}
+
+	virtual void removeKey(const char*)
 	{
 		throw NotAnObjectError();
 	}
@@ -161,6 +176,21 @@ struct ArrayNode : public Node
 		return data.size();
 	}
 
+	void setAt(size_t idx, Node *node)
+	{
+		data[idx] = node;
+	}
+
+	void removeAt(size_t idx)
+	{
+		data.remove(idx);
+	}
+
+	void append(Node* node, ChunkAllocator& allocator)
+	{
+		data.pushBack(node, allocator);
+	}
+
 	Array<Node*> data;
 };
 
@@ -211,6 +241,16 @@ struct ObjectNode : public Node
 		return data.size();
 	}
 
+	void setKey(const char *key, Node *node, ChunkAllocator& allocator)
+	{
+		data.set(key, node, allocator);
+	}
+
+	void removeKey(const char *k)
+	{
+		data.remove(k);
+	}
+
 	void printIndent(std::stringstream& ss, size_t indentLevel)
 	{
 		for (size_t i = 0; i < indentLevel; i++)
@@ -226,7 +266,7 @@ struct ObjectNode : public Node
  * Parser callbacks
  */
 
-class ASTBuildHandler
+class ASTBuildHandler : public INonCopyable
 {
 private:
 
@@ -241,9 +281,14 @@ public:
 
 	Node* getAST()
 	{
-		Node *ast = parseStack.front();
-		parseStack.pop_front();
-		return ast;
+		if (!parseStack.empty())
+		{
+			return parseStack.front();
+		}
+		else
+		{
+			return nullptr;
+		}
 	}
 
 	void stringAction(const char *b, const char *e)
@@ -287,7 +332,7 @@ public:
 		auto obj = new (allocator) ObjectNode(allocator);
 		for (auto iter = parseStack.end() - size; iter != parseStack.end(); iter += 2)
 		{
-			obj->data.insert(static_cast<StringNode*>(*iter)->data, *(iter + 1), allocator);
+			obj->data.set(static_cast<StringNode*>(*iter)->data, *(iter + 1), allocator);
 		}
 		parseStack.erase(parseStack.end() - size, parseStack.end());
 		parseStack.push_back(obj);
@@ -296,21 +341,19 @@ public:
 
 EzJSON::EzJSON(const char *content) : allocator(std::make_shared<ChunkAllocator>())
 {
-	ASTBuildHandler handler(*allocator);
-	Parser<TextScanner, ASTBuildHandler> (TextScanner(content), handler).parseValue();
-	node = handler.getAST();
+	node = parse(content, *allocator);
 }
 
 EzJSON::EzJSON(Node* nd, std::shared_ptr<ChunkAllocator> alc) : node(nd), allocator(alc)
 {
 }
 
-EzJSON EzJSON::at(size_t idx)
+EzJSON EzJSON::at(size_t idx) const
 {
 	return EzJSON(node->at(idx), allocator);
 }
 
-EzJSON EzJSON::key(const char *key)
+EzJSON EzJSON::key(const char *key) const
 {
 	return EzJSON(node->key(key), allocator);
 }
@@ -345,4 +388,41 @@ std::string EzJSON::serialize() const
 	std::stringstream ss;
 	node->serialize(ss);
 	return ss.str();
+}
+
+void EzJSON::append(const char* content)
+{
+	node->append(parse(content, *allocator), *allocator);
+}
+
+void EzJSON::setAt(size_t idx, const char *content)
+{
+	node->setAt(idx, parse(content, *allocator));
+}
+
+void EzJSON::setKey(const char *k, const char *content)
+{
+	node->setKey(k, parse(content, *allocator), *allocator);
+}
+
+void EzJSON::removeAt(size_t idx)
+{
+	node->removeAt(idx);
+}
+
+void EzJSON::removeKey(const char *k)
+{
+	node->removeKey(k);
+}
+
+Node* EzJSON::parse(const char *content, ChunkAllocator& alc) const
+{
+	ASTBuildHandler handler(alc);
+	Parser<TextScanner, ASTBuildHandler>(TextScanner(content), handler).parseValue();
+	Node *node = handler.getAST();
+	if (!node)
+	{
+		throw EmptyStringError();
+	}
+	return node;
 }

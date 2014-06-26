@@ -80,6 +80,7 @@ public:
 				}
 				else if (isDigit(current) || current == '-')
 				{
+					tokenEnd--;
 					state = NUMCONTENT;
 				}
 				else
@@ -98,7 +99,7 @@ public:
 				break;
 			case NUMCONTENT:
 				// convert string to number on-the-fly
-				tokenEnd -= 2;
+				tokenEnd--;
 				sign = 1;
 				if (*tokenEnd == '-')
 				{

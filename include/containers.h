@@ -98,6 +98,7 @@ private:
  * Dynamic array that use allocator to manage memory, 
  * To improve efficiency, it is not copyable, but movable
  */
+
 template <typename T>
 class Array : public INonCopyable
 {
@@ -141,6 +142,19 @@ public:
 			data = static_cast<T*>(newData);
 		}
 		data[sz++] = e;
+	}
+
+	void remove(size_t idx)
+	{
+		if (idx >= sz)
+		{
+			throw IndexOutOfRangeError();
+		}
+		for (size_t i = idx + 1; i < sz; ++i)
+		{
+			data[i - 1] = data[i];
+		}
+		sz--;
 	}
 
 	T& operator[](size_t idx)
@@ -238,19 +252,30 @@ public:
 	}
 
 	template <typename ALLOCATOR>
-	void insert(const String& k, const T& v, ALLOCATOR& allocator)
+	void set(const String& k, const T& v, ALLOCATOR& allocator)
 	{
-		data.pushBack(std::make_pair(k, v), allocator);
+		int result = find(k);
+		if (result == -1)
+		{
+			data.pushBack(std::make_pair(k, v), allocator);
+		}
+		else
+		{
+			data[result].second = v;
+		}
 	}
 
-	void set(const String& k, const T& v)
+	void remove(const String& k)
 	{
 		int result = find(k);
 		if (result == -1)
 		{
 			throw IndexOutOfRangeError();
 		}
-		data[result].second = v;
+		else
+		{
+			data.remove(result);
+		}
 	}
 
 	// const iterators
