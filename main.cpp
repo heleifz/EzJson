@@ -1,6 +1,6 @@
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
- #include <crtdbg.h>
+#include <crtdbg.h>
 
 #include "ezjson.h"
 
@@ -16,7 +16,7 @@ int main()
 {
 	// detect memory leak
 	{
-		std::ifstream in("test2.txt", std::ios::in | std::ios::binary);
+		std::ifstream in("test5.txt", std::ios::in | std::ios::binary);
 		if (in)
 		{
 			std::string contents;
@@ -27,10 +27,10 @@ int main()
 			in.close();
 
 			clock_t t = clock();
-			//for (int i = 0; i < 1; ++i)
-			EzJSON j = EzJSON(contents.c_str());
-			j.remove("gutter");
-			std::cout << j.serialize();
+			for (int i = 0; i < 500; ++i)
+				EzJSON j = EzJSON(contents.c_str());
+			//j.remove("gutter");
+			//std::cout << j.serialize();
 			//std::cout << j["nihao"].serialize();
 			//std::cout << j["instruments"].serialize() << std::endl;
 			std::cout << clock() - t << "\n";

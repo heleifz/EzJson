@@ -7,7 +7,7 @@
 #include "include/containers.h"
 
 #include <memory>
-#include <deque>
+#include <vector>
 #include <sstream>
 
 /**
@@ -271,7 +271,7 @@ class ASTBuildHandler : public INonCopyable
 private:
 
 	ChunkAllocator& allocator;
-	std::deque<Node*> parseStack;
+	std::vector<Node*> parseStack;
 
 public:
 
