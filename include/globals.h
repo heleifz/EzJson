@@ -1,6 +1,13 @@
 #ifndef __EZ_JSON_GLOBALS__
 #define __EZ_JSON_GLOBALS__
 
+#include <utility>
+#include <vector>
+#include <string>
+
+namespace Ez
+{
+
 /**
  * Exceptions
  */
@@ -11,6 +18,8 @@ class ScanError {};
 class InvalidArgumentError {};
 class OutOfMemoryError {};
 class IndexOutOfRangeError {};
+class EmptyArrayError {};
+class ShrinkToMuchError {};
 class DuplicateKeyError {};
 class NumberOverflowError {};
 class EmptyStringError {};
@@ -40,13 +49,18 @@ enum TokenType
 class INonCopyable
 {
 protected:
+
 	// Cannot create or delete directly (only through derived class)
 	INonCopyable() {}
 	~INonCopyable() {}
+
 private:
+
 	// Copying is not allowed
 	INonCopyable(const INonCopyable&);
 	INonCopyable& operator=(const INonCopyable&);
 };
+
+} // namespace Ez
 
 #endif

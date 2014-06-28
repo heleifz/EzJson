@@ -25,10 +25,12 @@ int main()
 			in.seekg(0, std::ios::beg);
 			in.read(&contents[0], contents.size());
 			in.close();
-
 			clock_t t = clock();
 			for (int i = 0; i < 500; ++i)
-				EzJSON j = EzJSON(contents.c_str());
+				//auto k = json11::Json(contents.c_str());
+				Ez::JSON j = Ez::JSON(contents.c_str());
+
+				//std::cout << j.serialize();
 			//j.remove("gutter");
 			//std::cout << j.serialize();
 			//std::cout << j["nihao"].serialize();

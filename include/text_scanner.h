@@ -3,9 +3,13 @@
 
 #include "globals.h"
 
+namespace Ez
+{
+
 class TextScanner
 {
 private:
+
 	TokenType type;
 	const char* tokenBegin;
 	const char* tokenEnd;
@@ -91,11 +95,10 @@ public:
 					case '{': case '}': case '[':
 					case ']': case ',': case ':':
 						type = (TokenType)current;
-						break;
+						return;
 					default:
 						throw ScanError();
 					}
-					return;
 				}
 				break;
 			case NUMCONTENT:
@@ -115,7 +118,7 @@ public:
 				// integer part
 				intVal = 0;
 				while (isDigit(one = *tokenEnd) && isDigit(two = *(tokenEnd + 1)) &&
-					   isDigit(three = *(tokenEnd + 2)))
+					isDigit(three = *(tokenEnd + 2)))
 				{
 					intVal = intVal * 1000 + ((one - '0') * 100 + (two - '0') * 10 + three - '0');
 					tokenEnd += 3;
@@ -145,7 +148,7 @@ public:
 					}
 					expoVal = 0;
 					while (isDigit(one = *tokenEnd) && isDigit(two = *(tokenEnd + 1)) &&
-						   isDigit(three = *(tokenEnd + 2)))
+						isDigit(three = *(tokenEnd + 2)))
 					{
 						expoVal = expoVal * 1000 + (100 * (one - '0') + 10 * (two - '0') + three - '0');
 						tokenEnd += 3;
@@ -164,7 +167,7 @@ public:
 					fractionVal = 0;
 					fracCount = 0;
 					while (isDigit(one = *tokenEnd) && isDigit(two = *(tokenEnd + 1)) &&
-						   isDigit(three = *(tokenEnd + 2)))
+						isDigit(three = *(tokenEnd + 2)))
 					{
 						fractionVal = fractionVal * 1000 + (100 * (one - '0') + 10 * (two - '0') + three - '0');
 						fracCount -= 3;
@@ -195,7 +198,7 @@ public:
 						}
 						expoVal = 0;
 						while (isDigit(one = *tokenEnd) && isDigit(two = *(tokenEnd + 1)) &&
-							   isDigit(three = *(tokenEnd + 2)))
+							isDigit(three = *(tokenEnd + 2)))
 						{
 							expoVal = expoVal * 1000 + (100 * (one - '0') + 10 * (two - '0') + three - '0');
 							tokenEnd += 3;
@@ -222,7 +225,7 @@ public:
 			case STRINGCONTENT:
 				while (current != '"')
 				{
-					switch (current) 
+					switch (current)
 					{
 					case '\0':
 						tokenBegin = tokenEnd - 1;
@@ -232,8 +235,7 @@ public:
 					case '\\':
 						tokenEnd++;
 					}
-					current = *tokenEnd;
-					tokenEnd++;
+					current = *(tokenEnd++);
 				}
 				type = STR;
 				return;
@@ -344,7 +346,7 @@ private:
 		LINECOMMENT, BLOCKCOMMENT, STAR
 	};
 
-	bool isDigit(char ch)
+	bool isDigit(int ch) const
 	{
 		return (ch >= '0' && ch <= '9');
 	}
@@ -354,24 +356,24 @@ private:
 	{
 		char one, two, three;
 		while (((one = *tokenEnd) == ' ' || one == '\n' ||
-			    one == '\r' || one == '\t') &&
-				((two = *(tokenEnd + 1)) == ' ' || two == '\n' ||
-				 two == '\r' || two == '\t') &&
-				 ((three = *(tokenEnd + 2)) == ' ' || three == '\n' ||
-				   three == '\r' || three == '\t'))
+			one == '\r' || one == '\t') &&
+			((two = *(tokenEnd + 1)) == ' ' || two == '\n' ||
+			two == '\r' || two == '\t') &&
+			((three = *(tokenEnd + 2)) == ' ' || three == '\n' ||
+			three == '\r' || three == '\t'))
 		{
 			tokenBegin += 3;
 			tokenEnd += 3;
 		}
 		while (((one = *tokenEnd) == ' ' || one == '\n' ||
-			    one == '\r' || one == '\t'))
+			one == '\r' || one == '\t'))
 		{
 			tokenBegin++;
 			tokenEnd++;
 		}
 	}
 
-	double getExp(int e)
+	double getExp(int e) const
 	{
 		static double expo[617] = {
 			// very long !!! 1e-308 ~ 1e308 (->___->) 
@@ -388,5 +390,7 @@ private:
 		return expo[e + 308];
 	}
 };
+
+} // namespace Ez
 
 #endif

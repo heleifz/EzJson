@@ -1,5 +1,0 @@
-[{
-    "f" : "F word",
-    "hello" : "nihao",
-    "world" : true
-}, 4.3]

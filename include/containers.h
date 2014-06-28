@@ -3,9 +3,8 @@
 
 #include "globals.h"
 
-#include <utility>
-#include <vector>
-#include <string>
+namespace Ez
+{
 
 /**
  * Immutable and copyable string class
@@ -13,7 +12,13 @@
  */
 class String
 {
+private:
+
+	const char *beginPtr;
+	const char *endPtr;
+
 public:
+
 	String(const char *b)
 	{
 		size_t len = strlen(b);
@@ -42,10 +47,12 @@ public:
 			endPtr = nullptr;
 		}
 	}
+
 	size_t size() const
 	{
 		return endPtr - beginPtr;
 	}
+
 	bool operator==(const String& other) const
 	{
 		size_t sz = size();
@@ -53,7 +60,7 @@ public:
 		{
 			return false;
 		}
-		for (size_t i = 0; i < sz; ++i)
+		for (size_t i = 0; i < sz; i++)
 		{
 			if (this->beginPtr[i] != other.beginPtr[i])
 			{
@@ -62,6 +69,7 @@ public:
 		}
 		return true;
 	}
+
 	char operator[](size_t idx) const
 	{
 		if (idx >= size())
@@ -75,6 +83,7 @@ public:
 	{
 		return beginPtr;
 	}
+
 	const char* end() const
 	{
 		return endPtr;
@@ -88,22 +97,18 @@ public:
 		}
 		return std::string(beginPtr, endPtr);
 	}
-
-private:
-	const char *beginPtr;
-	const char *endPtr;
 };
 
 /**
- * Dynamic array that use allocator to manage memory, 
- * To improve efficiency, it is not copyable, but movable
+ * Dynamic array that use allocator to manage memory,
  */
 
-template <typename T>
+template <typename T, typename ALLOCATOR>
 class Array : public INonCopyable
 {
 private:
 
+	ALLOCATOR& allocator;
 	const static size_t INIT_CAPACITY = 10;
 	size_t capacity;
 	size_t sz;
@@ -111,28 +116,13 @@ private:
 
 public:
 
-	template <typename ALLOCATOR>
-	Array(ALLOCATOR& allocator, size_t ca = INIT_CAPACITY)
-		: capacity(ca), sz(0)
+	Array(ALLOCATOR& a, size_t ca = INIT_CAPACITY)
+		: capacity(ca), sz(0), allocator(a)
 	{
 		data = static_cast<T*>(allocator.alloc(capacity * sizeof(T)));
 	}
 
-	// not copyable, but movable
-	Array(Array<T>&& other)
-	{
-		this->swap(std::move(other));
-	}
-
-	void move(Array<T>&& other)
-	{
-		std::swap(capacity, other.capacity);
-		std::swap(sz, other.sz);
-		std::swap(data, other.data);
-	}
-	
-	template <typename ALLOCATOR>
-	void pushBack(const T& e, ALLOCATOR& allocator)
+	void pushBack(const T& e)
 	{
 		if (sz == capacity)
 		{
@@ -142,6 +132,24 @@ public:
 			data = static_cast<T*>(newData);
 		}
 		data[sz++] = e;
+	}
+
+	T popBack()
+	{
+		if (sz == 0)
+		{
+			throw EmptyArrayError();
+		}
+		return data[--sz];
+	}
+
+	void shrink(size_t amount)
+	{
+		if (amount > sz)
+		{
+			throw ShrinkToMuchError();
+		}
+		sz -= amount;
 	}
 
 	void remove(size_t idx)
@@ -180,7 +188,6 @@ public:
 		return data[idx];
 	}
 
-	// const iterator
 	const T* const begin() const
 	{
 		return data;
@@ -193,34 +200,23 @@ public:
 };
 
 /**
-* Naive dictionary implementation backed by a dynamic array,
-* To improve efficiency, it is not copyable, but movable
-*/
-template <typename T>
+ * Naive dictionary implementation backed by a dynamic array,
+ */
+template <typename T, typename ALLOCATOR>
 
 class Dictionary : public INonCopyable
 {
 private:
-	Array<std::pair<String, T> > data;
+
+	Array<std::pair<String, T>, ALLOCATOR> data;
 
 public:
-	template <typename ALLOCATOR>
-	Dictionary(ALLOCATOR& allocator) 
+
+	Dictionary(ALLOCATOR& allocator)
 		: data(allocator)
 	{
 	}
 
-	// not copyable, but movable
-	Dictionary(Dictionary<T>&& other)
-		: data(std::move(other.data))
-	{
-	}
-
-	void move(Dictionary<T>&& other)
-	{
-		data.move(std::move(other));
-	}
-	
 	size_t size() const
 	{
 		return data.size();
@@ -251,13 +247,12 @@ public:
 		return result;
 	}
 
-	template <typename ALLOCATOR>
-	void set(const String& k, const T& v, ALLOCATOR& allocator)
+	void set(const String& k, const T& v)
 	{
 		int result = find(k);
 		if (result == -1)
 		{
-			data.pushBack(std::make_pair(k, v), allocator);
+			data.pushBack(std::make_pair(k, v));
 		}
 		else
 		{
@@ -278,7 +273,6 @@ public:
 		}
 	}
 
-	// const iterators
 	const std::pair<String, T>* const begin() const
 	{
 		return data.begin();
@@ -290,10 +284,12 @@ public:
 	}
 
 private:
+
 	int find(const String& key) const
 	{
 		int result = 0;
-		for (; result < static_cast<int>(data.size()); ++result)
+		int sz = static_cast<int>(data.size());
+		for (; result < sz; ++result)
 		{
 			if (data[result].first == key)
 			{
@@ -303,5 +299,7 @@ private:
 		return -1;
 	}
 };
+
+} // namespace Ez
 
 #endif

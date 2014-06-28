@@ -1,9 +1,15 @@
 #ifndef __EZ_JSON_PARSER__
 #define __EZ_JSON_PARSER__
 
+#include "globals.h"
+
+namespace Ez
+{
+
 class DefaultAction
 {
 public:
+
 	void stringAction(const char*, const char*) {}
 	void numberAction(double) {}
 	void boolAction(bool) {}
@@ -14,40 +20,52 @@ public:
 	void endObjectAction(size_t) { }
 };
 
-template <typename Scanner, typename Actions=DefaultAction>
+template <typename Scanner, typename Actions = DefaultAction>
 class Parser : public INonCopyable
 {
+private:
+
+	Scanner scanner;
+	Actions& act;
+
 public:
+
 	Parser(const Scanner& sc, Actions& a)
 		: scanner(sc), act(a)
 	{}
+
 	void parseNumber()
 	{
 		double val;
 		scanner.matchDouble(val);
 		act.numberAction(val);
 	}
+
 	void parseTrue()
 	{
 		scanner.match(TRU);
 		act.boolAction(true);
 	}
+
 	void parseFalse()
 	{
 		scanner.match(FAL);
 		act.boolAction(false);
 	}
+
 	void parseNull()
 	{
 		scanner.match(NUL);
 		act.nullAction();
 	}
+
 	void parseString()
 	{
 		const char *b, *e;
 		scanner.matchString(b, e);
 		act.stringAction(++b, --e);
 	}
+
 	void parseValue()
 	{
 		switch (scanner.lookahead())
@@ -77,6 +95,7 @@ public:
 			break;
 		}
 	}
+
 	void parseArray()
 	{
 		size_t sz = 0;
@@ -99,6 +118,7 @@ public:
 		act.endArrayAction(sz);
 		scanner.match(RBR);
 	}
+
 	void parseObject()
 	{
 		size_t sz = 0;
@@ -126,9 +146,8 @@ public:
 		act.endObjectAction(sz);
 		scanner.match(RCU);
 	}
-private:
-	Scanner scanner;
-	Actions& act;
 };
+
+} // namespace Ez
 
 #endif

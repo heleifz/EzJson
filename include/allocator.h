@@ -6,39 +6,47 @@
 #include <cstdlib>
 #include <cstring>
 
-class ChunkAllocator : public INonCopyable
+namespace Ez
+{
+
+class FastAllocator : public INonCopyable
 {
 private:
-	struct ChunkInfo
+
+	struct PageInfo
 	{
-		ChunkInfo *next;
+		PageInfo *next;
 		size_t capacity;
 		size_t used;
 	};
 
-	const static size_t CHUNK_SIZE = 4 * 1024;
-	ChunkInfo *current;
-	ChunkInfo *firstChunk;
+	const static size_t PAGE_SIZE = 4 * 1024;
+	PageInfo *current;
+	PageInfo *firstPage;
 
 public:
-	ChunkAllocator() : current(nullptr), firstChunk(nullptr)
+
+	FastAllocator() : current(nullptr), firstPage(nullptr)
 	{
-		newChunk(CHUNK_SIZE);
+		newPage(PAGE_SIZE);
 	}
-	~ChunkAllocator()
+
+	~FastAllocator()
 	{
 		clearAll();
 	}
+
 	void* alloc(size_t sz)
 	{
 		if (current->used + sz > current->capacity)
 		{
-			newChunk(sz + sizeof(ChunkInfo));
+			newPage(sz + sizeof(PageInfo));
 		}
 		void* ret = ((char*)current) + current->used;
 		current->used += sz;
 		return ret;
 	}
+
 	void* reAlloc(void *old, size_t old_sz, size_t new_sz)
 	{
 		if (new_sz <= old_sz)
@@ -58,35 +66,38 @@ public:
 		memcpy(ret, old, old_sz);
 		return ret;
 	}
+
 private:
+
 	void clearAll()
 	{
-		for (ChunkInfo *f = firstChunk; f != nullptr;)
+		for (PageInfo *f = firstPage; f != nullptr;)
 		{
-			ChunkInfo *next = f->next;
+			PageInfo *next = f->next;
 			free(f);
 			f = next;
 		}
-		firstChunk = nullptr;
+		firstPage = nullptr;
 		current = nullptr;
 	}
-	void newChunk(size_t sz)
+
+	void newPage(size_t sz)
 	{
-		if (sz < CHUNK_SIZE)
+		if (sz < PAGE_SIZE)
 		{
-			sz = CHUNK_SIZE;
+			sz = PAGE_SIZE;
 		}
-		ChunkInfo *ret = (ChunkInfo*)malloc(sz);
+		PageInfo *ret = (PageInfo*)malloc(sz);
 		if (ret == nullptr)
 		{
 			throw OutOfMemoryError();
 		}
 		ret->capacity = sz;
-		ret->used = sizeof(ChunkInfo);
+		ret->used = sizeof(PageInfo);
 		ret->next = nullptr;
 		if (current == nullptr)
 		{
-			firstChunk = ret;
+			firstPage = ret;
 		}
 		else
 		{
@@ -95,5 +106,7 @@ private:
 		current = ret;
 	}
 };
+
+} // namespace Ez
 
 #endif

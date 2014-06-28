@@ -6,29 +6,32 @@
 #include "include/allocator.h"
 #include "include/containers.h"
 
-#include <memory>
-#include <vector>
 #include <sstream>
+
+namespace Ez
+{
 
 /**
  * AST Node
  */
 
-struct Node
+class Node
 {
-	virtual void serialize(std::stringstream& ss, size_t indentLevel=0) = 0;
+public:
 
-	virtual Node* at(size_t)
+	virtual void serialize(std::stringstream& ss, size_t indentLevel = 0) const = 0;
+
+	virtual Node* at(size_t) const
 	{
 		throw NotAnArrayError();
 	}
 
-	virtual Node* key(const char*)
+	virtual Node* key(const char*) const
 	{
 		throw NotAnObjectError();
 	}
 
-	virtual void append(Node*, ChunkAllocator&)
+	virtual void append(Node*)
 	{
 		throw NotAnArrayError();
 	}
@@ -38,7 +41,7 @@ struct Node
 		throw NotAnArrayError();
 	}
 
-	virtual void setKey(const char*, Node*, ChunkAllocator&)
+	virtual void setKey(const char*, Node*)
 	{
 		throw NotAnObjectError();
 	}
@@ -53,74 +56,96 @@ struct Node
 		throw NotAnObjectError();
 	}
 
-	virtual size_t size()
+	virtual size_t size() const
 	{
 		throw NotAnArrayOrObjectError();
 	}
 
-	virtual std::vector<std::string> fields()
+	virtual std::vector<std::string> fields() const
 	{
 		throw NotAnObjectError();
 	}
 
-	virtual double asDouble()
+	virtual double asDouble() const
 	{
 		throw NotConvertibleError();
 	}
-	virtual bool asBool()
+
+	virtual bool asBool() const
 	{
 		throw NotConvertibleError();
 	}
-	virtual std::string asString()
+
+	virtual std::string asString() const
 	{
 		throw NotConvertibleError();
 	}
-	void* operator new(size_t sz, ChunkAllocator& alc)
+
+	void* operator new(size_t sz, FastAllocator& alc)
 	{
 		return alc.alloc(sz);
 	}
-	void operator delete(void*, ChunkAllocator&)
+
+	void operator delete(void*, FastAllocator&)
 	{
 		// Do Nothing (let the chunk allocator to release the memory)
 	}
 };
 
-struct NumberNode : public Node
+class NumberNode : public Node
 {
+private:
+
+	double data;
+
+public:
+
 	NumberNode(double val) : data(val) {}
-	virtual void serialize(std::stringstream& ss, size_t)
+
+	virtual void serialize(std::stringstream& ss, size_t) const
 	{
 		ss << data;
 	}
-	double asDouble()
+
+	double asDouble() const
 	{
 		return data;
 	}
-	double data;
 };
 
-struct StringNode : public Node
+class StringNode : public Node
 {
-	StringNode(const char *b, const char *e, ChunkAllocator& alc)
-	: data(b, e, alc) {}
+private:
 
-	virtual void serialize(std::stringstream& ss, size_t)
+	String data;
+	friend class ASTBuildHandler;
+
+public:
+
+	StringNode(const char *b, const char *e, FastAllocator& alc)
+		: data(b, e, alc) {}
+
+	virtual void serialize(std::stringstream& ss, size_t) const
 	{
 		ss << '"' << asString() << '"';
 	}
 
-	std::string asString()
+	std::string asString() const
 	{
 		return data.asSTLString();
 	}
-
-	String data;
 };
 
-struct BoolNode : public Node
+class BoolNode : public Node
 {
+private:
+
+	bool data;
+
+public:
+
 	BoolNode(bool b) : data(b) {}
-	virtual void serialize(std::stringstream& ss, size_t)
+	virtual void serialize(std::stringstream& ss, size_t) const
 	{
 		if (data)
 		{
@@ -132,27 +157,35 @@ struct BoolNode : public Node
 		}
 	}
 
-	bool asBool()
+	bool asBool() const
 	{
 		return data;
 	}
-	bool data;
 };
 
-struct NullNode : public Node
+class NullNode : public Node
 {
-	virtual void serialize(std::stringstream& ss, size_t)
+public:
+
+	virtual void serialize(std::stringstream& ss, size_t) const
 	{
 		ss << "null";
 	}
 };
 
-struct ArrayNode : public Node
+class ArrayNode : public Node
 {
-	ArrayNode(ChunkAllocator& alloc)
-	: data(alloc) {}
+private:
 
-	virtual void serialize(std::stringstream& ss, size_t indentLevel)
+	Array<Node*, FastAllocator> data;
+	friend class ASTBuildHandler;
+
+public:
+
+	ArrayNode(FastAllocator& alloc)
+		: data(alloc) {}
+
+	virtual void serialize(std::stringstream& ss, size_t indentLevel) const
 	{
 		ss << "[";
 		for (size_t i = 1; i < data.size(); ++i)
@@ -167,11 +200,11 @@ struct ArrayNode : public Node
 		ss << "]";
 	}
 
-	Node* at(size_t idx)
+	Node* at(size_t idx) const
 	{
 		return data[idx];
 	}
-	size_t size()
+	size_t size() const
 	{
 		return data.size();
 	}
@@ -186,20 +219,25 @@ struct ArrayNode : public Node
 		data.remove(idx);
 	}
 
-	void append(Node* node, ChunkAllocator& allocator)
+	void append(Node* node)
 	{
-		data.pushBack(node, allocator);
+		data.pushBack(node);
 	}
-
-	Array<Node*> data;
 };
 
-struct ObjectNode : public Node
+class ObjectNode : public Node
 {
-	ObjectNode(ChunkAllocator& allocator)
-	: data(allocator) {}
+private:
 
-	virtual void serialize(std::stringstream& ss, size_t indentLevel)
+	Dictionary<Node*, FastAllocator> data;
+	friend class ASTBuildHandler;
+
+public:
+
+	ObjectNode(FastAllocator& allocator)
+		: data(allocator) {}
+
+	virtual void serialize(std::stringstream& ss, size_t indentLevel) const
 	{
 		if (indentLevel > 0)
 		{
@@ -226,24 +264,24 @@ struct ObjectNode : public Node
 		ss << "}";
 	}
 
-	Node* key(const char* k)
+	Node* key(const char* k) const
 	{
 		return data.get(k);
 	}
 
-	std::vector<std::string> fields()
+	std::vector<std::string> fields() const
 	{
 		return data.keys();
 	}
 
-	size_t size()
+	size_t size() const
 	{
 		return data.size();
 	}
 
-	void setKey(const char *key, Node *node, ChunkAllocator& allocator)
+	void setKey(const char *key, Node *node)
 	{
-		data.set(key, node, allocator);
+		data.set(key, node);
 	}
 
 	void removeKey(const char *k)
@@ -251,15 +289,13 @@ struct ObjectNode : public Node
 		data.remove(k);
 	}
 
-	void printIndent(std::stringstream& ss, size_t indentLevel)
+	void printIndent(std::stringstream& ss, size_t indentLevel) const
 	{
 		for (size_t i = 0; i < indentLevel; i++)
 		{
 			ss << "    ";
 		}
 	}
-
-	Dictionary<Node*> data;
 };
 
 /**
@@ -270,20 +306,20 @@ class ASTBuildHandler : public INonCopyable
 {
 private:
 
-	ChunkAllocator& allocator;
-	std::vector<Node*> parseStack;
+	FastAllocator& allocator;
+	Array<Node*, FastAllocator> parseStack;
 
 public:
 
-	ASTBuildHandler(ChunkAllocator& a) : allocator(a)
+	ASTBuildHandler(FastAllocator& a) : allocator(a), parseStack(a)
 	{
 	}
 
 	Node* getAST()
 	{
-		if (!parseStack.empty())
+		if (parseStack.size() == 1)
 		{
-			return parseStack.front();
+			return parseStack.popBack();
 		}
 		else
 		{
@@ -293,35 +329,36 @@ public:
 
 	void stringAction(const char *b, const char *e)
 	{
-		parseStack.push_back(new (allocator) StringNode(b, e, allocator));
+		parseStack.pushBack(new (allocator)StringNode(b, e, allocator));
 	}
 
 	void numberAction(double val)
 	{
-		parseStack.push_back(new (allocator) NumberNode(val));
+		parseStack.pushBack(new (allocator)NumberNode(val));
 	}
 
 	void boolAction(bool b)
 	{
-		parseStack.push_back(new (allocator) BoolNode(b));
+		parseStack.pushBack(new (allocator)BoolNode(b));
 	}
 
 	void nullAction()
 	{
-		parseStack.push_back(new (allocator) NullNode());
+		parseStack.pushBack(new (allocator)NullNode());
 	}
 
 	void beginArrayAction() {}
 
 	void endArrayAction(size_t size)
 	{
-		auto arr = new (allocator) ArrayNode(allocator);
-		for (auto iter = parseStack.end() - size; iter != parseStack.end(); ++iter)
+		auto arr = new (allocator)ArrayNode(allocator);
+		auto last = parseStack.end();
+		for (auto iter = parseStack.end() - size; iter != last; ++iter)
 		{
-			arr->data.pushBack(*iter, allocator);
+			arr->data.pushBack(*iter);
 		}
-		parseStack.erase(parseStack.end() - size, parseStack.end());
-		parseStack.push_back(arr);
+		parseStack.shrink(size);
+		parseStack.pushBack(arr);
 	}
 
 	void beginObjectAction() {}
@@ -329,93 +366,96 @@ public:
 	void endObjectAction(size_t size)
 	{
 		size *= 2;
-		auto obj = new (allocator) ObjectNode(allocator);
-		for (auto iter = parseStack.end() - size; iter != parseStack.end(); iter += 2)
+		auto obj = new (allocator)ObjectNode(allocator);
+		auto last = parseStack.end();
+		for (auto iter = parseStack.end() - size; iter != last; iter += 2)
 		{
-			obj->data.set(static_cast<StringNode*>(*iter)->data, *(iter + 1), allocator);
+			obj->data.set(static_cast<StringNode*>(*iter)->data, *(iter + 1));
 		}
-		parseStack.erase(parseStack.end() - size, parseStack.end());
-		parseStack.push_back(obj);
+		parseStack.shrink(size);
+		parseStack.pushBack(obj);
 	}
 };
 
-EzJSON::EzJSON(const char *content) : allocator(std::make_shared<ChunkAllocator>())
+JSON::JSON(const char *content)
+	: allocator(std::make_shared<FastAllocator>())
 {
 	node = parse(content, *allocator);
 }
 
-EzJSON::EzJSON(Node* nd, std::shared_ptr<ChunkAllocator> alc) : node(nd), allocator(alc)
+JSON::JSON(Node* nd, std::shared_ptr<FastAllocator> alc)
+	: node(nd), allocator(alc)
 {
 }
 
-EzJSON EzJSON::at(size_t idx) const
+JSON JSON::at(size_t idx) const
 {
-	return EzJSON(node->at(idx), allocator);
+	return JSON(node->at(idx), allocator);
 }
 
-EzJSON EzJSON::key(const char *key) const
+JSON JSON::key(const char *key) const
 {
-	return EzJSON(node->key(key), allocator);
+	return JSON(node->key(key), allocator);
 }
 
-double EzJSON::asDouble() const
+double JSON::asDouble() const
 {
 	return node->asDouble();
 }
 
-bool EzJSON::asBool() const
+bool JSON::asBool() const
 {
 	return node->asBool();
 }
 
-std::string EzJSON::asString() const
+std::string JSON::asString() const
 {
 	return node->asString();
 }
 
-size_t EzJSON::size() const
+size_t JSON::size() const
 {
 	return node->size();
 }
 
-std::vector<std::string> EzJSON::keys() const
+std::vector<std::string> JSON::keys() const
 {
 	return node->fields();
 }
 
-std::string EzJSON::serialize() const
+std::string JSON::serialize() const
 {
 	std::stringstream ss;
 	node->serialize(ss);
 	return ss.str();
 }
 
-void EzJSON::append(const char* content)
+void JSON::append(const char* content)
 {
-	node->append(parse(content, *allocator), *allocator);
+	node->append(parse(content, *allocator));
 }
 
-void EzJSON::setAt(size_t idx, const char *content)
+void JSON::setAt(size_t idx, const char *content)
 {
 	node->setAt(idx, parse(content, *allocator));
 }
 
-void EzJSON::setKey(const char *k, const char *content)
+void JSON::setKey(const char *k, const char *content)
 {
-	node->setKey(k, parse(content, *allocator), *allocator);
+	node->setKey(k, parse(content, *allocator));
 }
 
-void EzJSON::removeAt(size_t idx)
+void JSON::removeAt(size_t idx)
 {
 	node->removeAt(idx);
 }
 
-void EzJSON::removeKey(const char *k)
+void JSON::removeKey(const char *k)
 {
 	node->removeKey(k);
 }
 
-Node* EzJSON::parse(const char *content, ChunkAllocator& alc) const
+Node* JSON::parse(const char *content, FastAllocator& alc) const
 {
 	ASTBuildHandler handler(alc);
 	Parser<TextScanner, ASTBuildHandler>(TextScanner(content), handler).parseValue();
@@ -425,4 +465,6 @@ Node* EzJSON::parse(const char *content, ChunkAllocator& alc) const
 		throw EmptyStringError();
 	}
 	return node;
+}
+
 }
