@@ -6,6 +6,10 @@
 
 EzJSON is a fast and minimalist JSON library. 
 
+## Installation
+
+EzJSON need the compiler to support C++11. You can include the library source file in your project, or you can run ```make``` command to build a shared library (recommanded).
+
 ## Usage
 
 As it name suggests, EzJSON is really easy to use. Use JSON string to contruct an EzJSON object, then you can access it like an array / map.
@@ -23,11 +27,25 @@ j.set("foo", "[1, 2, 3, 4]");
 j["foo"].remove(2);
 ```
 
-EzJSON has a baked in pretty printing functionality.
+EzJSON has a baked-in pretty printing functionality.
 
 ```c++
 Ez::JSON j("[1, {\"foo\" : [3, 4]}, 2]");
 std::cout << j.serialize();
+```
+
+All EzJSON exceptions are derived from std::exception.
+
+```c++
+try
+{
+	Ez::JSON j("{");
+}
+catch (const std::exception& e)
+{
+	// get the error message
+	std::cout << e.what();
+}
 ```
 
 # Performance
