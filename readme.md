@@ -1,6 +1,6 @@
 # EzJSON : A Fast and Simple JSON Library 
 
-![](http://https://travis-ci.org/heleifz/EzJson.svg?branch=master)
+![](https://travis-ci.org/heleifz/EzJson.svg?branch=master)
 
 # Introduction
 
