@@ -53,30 +53,27 @@ public:
 					state = STRINGCONTENT;
 					break;
 				case 't':
-					if (*(tokenEnd) != 'r' || *(tokenEnd + 1) != 'u' ||
-						*(tokenEnd + 2) != 'e')
+					if (*(tokenEnd++) != 'r' || *(tokenEnd++) != 'u' ||
+						*(tokenEnd++) != 'e')
 					{
-						throw ScanError();
+						throw UnexpectedCharacterError(std::string(tokenBegin, tokenEnd), TRU);
 					}
-					tokenEnd += 3;
 					type = TRU;
 					return;
 				case 'f':
-					if (*(tokenEnd) != 'a' || *(tokenEnd + 1) != 'l' ||
-						*(tokenEnd + 2) != 's' || *(tokenEnd + 3) != 'e')
+					if (*(tokenEnd++) != 'a' || *(tokenEnd++) != 'l' ||
+						*(tokenEnd++) != 's' || *(tokenEnd++) != 'e')
 					{
-						throw ScanError();
+						throw UnexpectedCharacterError(std::string(tokenBegin, tokenEnd), FAL);
 					}
-					tokenEnd += 4;
 					type = FAL;
 					return;
 				case 'n':
-					if (*(tokenEnd) != 'u' || *(tokenEnd + 1) != 'l' ||
-						*(tokenEnd + 2) != 'l')
+					if (*(tokenEnd++) != 'u' || *(tokenEnd++) != 'l' ||
+						*(tokenEnd++) != 'l')
 					{
-						throw ScanError();
+						throw UnexpectedCharacterError(std::string(tokenBegin, tokenEnd), NUL);
 					}
-					tokenEnd += 3;
 					type = NUL;
 					return;
 				case '/':
@@ -97,7 +94,7 @@ public:
 						type = (TokenType)current;
 						return;
 					default:
-						throw ScanError();
+						throw UnexpectedCharacterError(current, type);
 					}
 				}
 				break;
@@ -250,7 +247,7 @@ public:
 				}
 				else
 				{
-					throw ScanError();
+					throw IllegalCommentError();
 				}
 				break;
 			case LINECOMMENT:
@@ -307,7 +304,7 @@ public:
 		}
 		else
 		{
-			throw ParseError();
+			throw UnexpectedTokenError(t, type);
 		}
 	}
 
@@ -320,7 +317,7 @@ public:
 		}
 		else
 		{
-			throw ParseError();
+			throw UnexpectedTokenError(NUM, type);
 		}
 	}
 
@@ -334,7 +331,7 @@ public:
 		}
 		else
 		{
-			throw ParseError();
+			throw UnexpectedTokenError(STR, type);
 		}
 	}
 

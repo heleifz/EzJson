@@ -76,16 +76,16 @@ public:
 	}
 
 private:
+	
+	JSON(Node* nd, std::shared_ptr<FastAllocator> alc);
+	Node* parse(const char *content, FastAllocator& alc) const;
+
 	JSON at(size_t idx) const;
 	JSON key(const char *key) const;
 	void setAt(size_t idx, const char*);
 	void setKey(const char *k, const char*);
 	void removeAt(size_t idx);
 	void removeKey(const char *k);
-
-	Node* parse(const char *content, FastAllocator& alc) const;
-
-	JSON(Node* nd, std::shared_ptr<FastAllocator> alc);
 };
 
 } // namespace Ez

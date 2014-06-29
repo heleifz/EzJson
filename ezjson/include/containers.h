@@ -32,7 +32,7 @@ public:
 		size_t sz = e - b;
 		if (sz < 0)
 		{
-			throw InvalidArgumentError();
+			throw InvalidCStringError();
 		}
 		else if (sz > 0)
 		{
@@ -138,7 +138,7 @@ public:
 	{
 		if (sz == 0)
 		{
-			throw EmptyArrayError();
+			throw IndexOutOfRangeError();
 		}
 		return data[--sz];
 	}
@@ -147,7 +147,7 @@ public:
 	{
 		if (amount > sz)
 		{
-			throw ShrinkToMuchError();
+			throw IndexOutOfRangeError();
 		}
 		sz -= amount;
 	}

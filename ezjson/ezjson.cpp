@@ -462,7 +462,7 @@ Node* JSON::parse(const char *content, FastAllocator& alc) const
 	Node *node = handler.getAST();
 	if (!node)
 	{
-		throw EmptyStringError();
+		throw ParseError("JSON string is empty.");
 	}
 	return node;
 }

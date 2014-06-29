@@ -68,7 +68,8 @@ public:
 
 	void parseValue()
 	{
-		switch (scanner.lookahead())
+		TokenType t = scanner.lookahead();
+		switch (t)
 		{
 		case NUM:
 			parseNumber();
@@ -92,6 +93,7 @@ public:
 			parseNull();
 			break;
 		default:
+			throw UnexpectedTokenError(t);
 			break;
 		}
 	}
