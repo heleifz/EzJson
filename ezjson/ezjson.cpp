@@ -12,9 +12,9 @@ namespace Ez
 {
 
 /**
- * AST Node
+ * @brief AST node
+ * 
  */
-
 class Node
 {
 public:
@@ -299,9 +299,9 @@ public:
 };
 
 /**
- * Parser callbacks
+ * @brief Parser callbacks
+ * 
  */
-
 class ASTBuildHandler : public INonCopyable
 {
 private:
@@ -317,13 +317,14 @@ public:
 
 	Node* getAST()
 	{
+		// the parse stack MUST has only one element after parsing
 		if (parseStack.size() == 1)
 		{
 			return parseStack.popBack();
 		}
 		else
 		{
-			return nullptr;
+			ParseError("Illegal JSON format.");
 		}
 	}
 
@@ -351,6 +352,7 @@ public:
 
 	void endArrayAction(size_t size)
 	{
+		// pop size nodes from parse stack, and construct a array node from them
 		auto arr = new (allocator)ArrayNode(allocator);
 		auto last = parseStack.end();
 		for (auto iter = parseStack.end() - size; iter != last; ++iter)
@@ -358,6 +360,7 @@ public:
 			arr->data.pushBack(*iter);
 		}
 		parseStack.shrink(size);
+		// push the newly constructed array node to the parse stack
 		parseStack.pushBack(arr);
 	}
 
@@ -365,7 +368,10 @@ public:
 
 	void endObjectAction(size_t size)
 	{
+		// key + value
 		size *= 2;
+		// pop size key and value nodes from parse stack
+		// construct a object node from them
 		auto obj = new (allocator)ObjectNode(allocator);
 		auto last = parseStack.end();
 		for (auto iter = parseStack.end() - size; iter != last; iter += 2)
@@ -373,6 +379,7 @@ public:
 			obj->data.set(static_cast<StringNode*>(*iter)->data, *(iter + 1));
 		}
 		parseStack.shrink(size);
+		// push the newly constructed object node to he parse stack
 		parseStack.pushBack(obj);
 	}
 };
@@ -460,10 +467,6 @@ Node* JSON::parse(const char *content, FastAllocator& alc) const
 	ASTBuildHandler handler(alc);
 	Parser<TextScanner, ASTBuildHandler>(TextScanner(content), handler).parseValue();
 	Node *node = handler.getAST();
-	if (!node)
-	{
-		throw ParseError("JSON string is empty.");
-	}
 	return node;
 }
 
