@@ -88,7 +88,7 @@ public:
 
 	void operator delete(void*, FastAllocator&)
 	{
-		// Do Nothing (let the chunk allocator to release the memory)
+		// Do Nothing (let the allocator to release the memory)
 	}
 };
 

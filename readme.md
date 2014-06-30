@@ -2,9 +2,9 @@
 
 ![](https://travis-ci.org/heleifz/EzJson.svg?branch=master)
 
-## A Fast and minimalist JSON Library 
+## A Fast and Minimalist JSON Library 
 
-EzJSON is a fast and minimalist JSON library. 
+EzJSON is a fast and minimalist JSON library.
 
 ## Installation
 
@@ -50,7 +50,7 @@ catch (const std::exception& e)
 
 # Performance
 
-Inspired by rapidjson, EzJSON use a custom allocator to dramatically speed up the parse process. It's approximately 6x faster than dropbox's json11, and it took only 1.3 second for EzJSON to build complete AST for a very large (185MB) JSON file. 
+Inspired by rapidjson, EzJSON use a custom allocator to dramatically speed up the parsing process. It's approximately 6x faster than dropbox's json11, and it took only 1.3 second for EzJSON to build complete AST for a very large (185MB) JSON file. 
 
 ## About
 
