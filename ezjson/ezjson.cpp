@@ -12,13 +12,14 @@ namespace Ez
 {
 
 /**
- * @brief AST node
+ * @brief generic AST node, every operation on it will fail
  * 
  */
 class Node
 {
 public:
 
+	// to make code shorter, ezjson does not use visitor pattern to implement serialization
 	virtual void serialize(std::stringstream& ss, size_t indentLevel = 0) const = 0;
 
 	virtual Node* at(size_t) const
@@ -81,6 +82,8 @@ public:
 		throw NotConvertibleError();
 	}
 
+	// placement new to allocate it at memory pool
+
 	void* operator new(size_t sz, FastAllocator& alc)
 	{
 		return alc.alloc(sz);
@@ -88,9 +91,13 @@ public:
 
 	void operator delete(void*, FastAllocator&)
 	{
-		// Do Nothing (let the allocator to release the memory)
+		// do nothing (let the allocator to release the memory)
 	}
 };
+
+/** 
+ * Every derived class implements the operations it supports
+ */
 
 class NumberNode : public Node
 {
@@ -293,6 +300,7 @@ public:
 	{
 		for (size_t i = 0; i < indentLevel; i++)
 		{
+			// 4 spaces per indentation level
 			ss << "    ";
 		}
 	}
@@ -395,6 +403,8 @@ JSON::JSON(Node* nd, std::shared_ptr<FastAllocator> alc)
 {
 }
 
+// support chaining indexing
+
 JSON JSON::at(size_t idx) const
 {
 	return JSON(node->at(idx), allocator);
@@ -404,6 +414,8 @@ JSON JSON::key(const char *key) const
 {
 	return JSON(node->key(key), allocator);
 }
+
+// every operations delegate to underlying Node object
 
 double JSON::asDouble() const
 {

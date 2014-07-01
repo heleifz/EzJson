@@ -48,6 +48,12 @@ private:
 class ParseError : public std::runtime_error
 {
 protected:
+	/**
+	 * @brief Get description of the token
+	 * 
+	 * @param t token
+	 * @return token description
+	 */
 	const char *getTokenName(TokenType t) const
 	{
 		switch (t)

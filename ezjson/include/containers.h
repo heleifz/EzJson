@@ -6,10 +6,11 @@
 namespace Ez
 {
 
-/**
- * Immutable and copyable string class
- * Do not manage memory itself
- */
+ /**
+  * @brief Immutable and copyable string class,
+  *        Do not manage memory itself 
+  * 
+  */
 class String
 {
 private:

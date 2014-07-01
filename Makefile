@@ -5,4 +5,4 @@ runtest : test/test.cpp ezjson.so
 	./runtest
 
 ezjson.so : ezjson/ezjson.cpp ezjson/ezjson.h ${INCLUDES}
-	$(CXX) -O1  -fPIC -shared --std=c++11 -Iinclude ezjson/ezjson.cpp -o ezjson.so
+	$(CXX) -O1 -fPIC -shared --std=c++11 -Iinclude ezjson/ezjson.cpp -o ezjson.so

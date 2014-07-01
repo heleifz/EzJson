@@ -6,6 +6,10 @@
 namespace Ez
 {
 
+/**
+ * @brief Default callback interface (do nothing)
+ *
+ */
 class DefaultAction
 {
 public:
@@ -20,6 +24,12 @@ public:
 	void endObjectAction(size_t) { }
 };
 
+/**
+ * @brief Recursive descent JSON parser
+ * 
+ * @tparam Scanner token stream
+ * @tparam Actions = DefaultAction callbacks
+ */
 template <typename Scanner, typename Actions = DefaultAction>
 class Parser : public INonCopyable
 {
@@ -34,6 +44,9 @@ public:
 		: scanner(sc), act(a)
 	{}
 
+	/**
+	 * @brief Parse number
+	 */
 	void parseNumber()
 	{
 		double val;
@@ -41,31 +54,47 @@ public:
 		act.numberAction(val);
 	}
 
+	/**
+	 * @brief Parser true value
+	 */
 	void parseTrue()
 	{
 		scanner.match(TRU);
 		act.boolAction(true);
 	}
 
+	/**
+	 * @brief Parse false value
+	 */
 	void parseFalse()
 	{
 		scanner.match(FAL);
 		act.boolAction(false);
 	}
 
+	/**
+	 * @brief Parse null
+	 */
 	void parseNull()
 	{
 		scanner.match(NUL);
 		act.nullAction();
 	}
 
+	/**
+	 * @brief Parse string (strip quotation marks)
+	 */
 	void parseString()
 	{
 		const char *b, *e;
 		scanner.matchString(b, e);
+		// remove quotation marks
 		act.stringAction(++b, --e);
 	}
 
+	/**
+	 * @brief Parse JSON value
+	 */
 	void parseValue()
 	{
 		TokenType t = scanner.lookahead();
@@ -98,6 +127,9 @@ public:
 		}
 	}
 
+	/**
+	 * @brief Parse JSON array
+	 */
 	void parseArray()
 	{
 		size_t sz = 0;
@@ -121,6 +153,9 @@ public:
 		scanner.match(RBR);
 	}
 
+	/**
+	 * @brief Parse JSON object
+	 */
 	void parseObject()
 	{
 		size_t sz = 0;
@@ -136,7 +171,6 @@ public:
 		scanner.match(COL);
 		parseValue();
 		sz++;
-
 		while (scanner.lookahead() == COM)
 		{
 			scanner.next();
