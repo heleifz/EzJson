@@ -6,6 +6,10 @@
 namespace Ez
 {
 
+/**
+ * @brief  Text scanner
+ * @details Convert JSON to token stream
+ */
 class TextScanner
 {
 private:
@@ -20,9 +24,13 @@ public:
 	TextScanner(const char* inp)
 		: tokenBegin(inp), tokenEnd(inp)
 	{
+		// Invoke next to make scanner in a valid state
 		next();
 	}
 
+	/**
+	 * @brief Get next token, update scanner's state
+	 */
 	void next()
 	{
 		// for number parsing
@@ -40,6 +48,7 @@ public:
 		tokenBegin = tokenEnd;
 		skipSpaces();
 
+		// Boring DFA loop
 		while (*tokenEnd != '\0')
 		{
 			char current = *tokenEnd;
@@ -291,11 +300,18 @@ public:
 		return;
 	}
 
+	/**
+	 * @brief Peek next token type
+	 */
 	TokenType lookahead()
 	{
 		return type;
 	}
 
+	/**
+	 * @brief Eat a token
+	 * @param t expected token type
+	 */
 	void match(TokenType t)
 	{
 		if (t == type)
@@ -308,6 +324,10 @@ public:
 		}
 	}
 
+	/**
+	 * @brief Match floating point number
+	 * @param v output variable
+	 */
 	void matchDouble(double &v)
 	{
 		if (NUM == type)
@@ -321,6 +341,11 @@ public:
 		}
 	}
 
+	/**
+	 * @brief Match string
+	 * @param b begin of the string (out)
+	 * @param e end of the string(out)
+	 */
 	void matchString(const char*& b, const char *& e)
 	{
 		if (STR == type)
@@ -337,12 +362,20 @@ public:
 
 private:
 
+	/**
+	 * DFA states
+	 */	
 	enum {
 		START, NUMCONTENT,
 		STRINGCONTENT, SLASH,
 		LINECOMMENT, BLOCKCOMMENT, STAR
 	};
 
+	/**
+	 * @brief Is digit
+	 * @param ch character
+	 * @return is digit
+	 */
 	bool isDigit(int ch) const
 	{
 		return (ch >= '0' && ch <= '9');
